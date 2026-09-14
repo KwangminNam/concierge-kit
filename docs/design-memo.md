@@ -53,8 +53,10 @@ createRelay 인스턴스               정책 병합: 기본값 → 인스턴스
 
 ```ts
 // 순수 함수 (어댑터 없이 완결)
-relaySetCookies(from: Response | Headers, to: Headers, policy: CookieRelayPolicy, ctx?: RelayContext): RelayResult
+relaySetCookies(from: Response | Headers, to: Headers, policy?: CookieRelayPolicy, ctx?: RelayContext): RelayResult
+pipeSetCookies(from: Response | Headers, sink: (c: OutgoingSetCookie) => boolean | void, policy?, ctx?): RelayResult
 forwardRequestCookies(from: Request | Headers, init?: RequestInit, policy?: ForwardPolicy): RequestInit
+prepareResponseHeaders(headers: Headers): Headers   // hop-by-hop + 모든 Set-Cookie 제거
 stripHopByHopHeaders(headers: Headers): Headers
 
 // 인스턴스
@@ -155,7 +157,33 @@ render-prop 으로 넘기는 `<Query>`. 코어는 프레임워크 무의존이�
 Nuxt 쪽은 JSX 층이 성립하지 않는다. Vue 서버 컴포넌트는 실험 단계이고 Nuxt 의 선언 단위는
 composable 이므로 대응물은 h3 어댑터 위의 `useRelay()` 다.
 
-## 8. 테스트와 게이트
+## 8. 구현 중 확정하거나 드러난 것
+
+**`pipeSetCookies` 를 도입했다.** Route Handler 경로와 Server Action 경로가 같은 엔진을 써야
+하는데, 두 경로의 목적지가 다르다(`Headers.append` 와 `cookies().set()`). 그래서 코어에
+싱크 콜백을 받는 함수를 두고 `relaySetCookies` 는 그 위의 한 줄이 되었다. 부수 효과로 쿠키
+원문이 반환값이 아니라 호출자가 준 콜백으로만 흐르게 되어 "값 미노출" 원칙이 더 단단해졌다.
+싱크가 `false` 를 반환하면 `unappliable` 로 기록되며, 이것이 RSC 렌더 감지의 구현이다.
+
+**RSC 렌더 감지는 사전 판별이 아니라 catch 기반이다.** `cookies().set()` 이 던지는 것을 잡아
+`onUnappliable` 정책으로 넘긴다. Next 의 에러 메시지를 문자열로 매칭하지 않으므로 메이저가
+바뀌어도 동작한다. 원래 에러는 `cause` 로 보존한다.
+
+**`Request` 판별을 `'headers' in from` 으로 하면 안 된다.** Next 의 `headers()` 가 돌려주는
+`ReadonlyHeaders` 가 자기 `headers` 필드를 가지고 있어서, 이 덕 타이핑은 헤더 객체를 요청으로
+오인하고 엉뚱한 필드를 읽는다. 실제로 Server Action 경로가 이것 때문에 런타임에서 터졌고
+e2e 가 잡아냈다. 판별은 `Request` 에만 있는 `url`, `Response` 에만 있는 `status` 로 한다.
+회귀 테스트를 코어에 남겼다.
+
+**오타난 정책 키는 dev 에서 throw 한다.** 제네릭 파라미터에는 초과 속성 검사가 걸리지 않아
+TypeScript 가 `sameSitePolicy` 같은 오타를 잡지 못한다는 것을 타입 테스트로 확인했다. 값
+수준의 오타(`domain: 'stripe'`)는 타입이 잡는다. 나머지는 시작 시점 런타임 검증으로 막는다.
+
+**`allow` 정책은 순수 함수에서 선택 인자다.** 생략하면 아무것도 중계하지 않고 dev 에서 한 번
+경고한다. 필수로 두는 안도 검토했으나, "옵션 미지정 시 가장 안전한 기본값" 원칙과 일관되게
+생략 가능 + 안전한 동작으로 정했다.
+
+## 9. 테스트와 게이트
 
 - **단위(코어)**: 헤더 문자열 입출력. Expires 쉼표, 다중 쿠키, 따옴표 값, `Partitioned`/`Priority` 보존,
   Domain strip, Secure strip 에 따른 SameSite 강등, matcher 각 형태와 배열 OR, rename, 동명이Path 쿠키
@@ -167,6 +195,9 @@ composable 이므로 대응물은 h3 어댑터 위의 `useRelay()` 다.
   **중요: localhost 로는 검증이 안 된다.** 브라우저는 `localhost` 와 `127.0.0.1` 을 secure context 로
   취급해 http 에서도 `Secure` 쿠키를 저장한다. Domain 불일치도 재현되지 않는다. 그래서
   `--host-resolver-rules=MAP dev.example.test 127.0.0.1` 로 비-localhost 호스트를 쓴다.
+- Next 15 와 16 은 CI 매트릭스로 함께 검증한다. 어댑터 devDependency 는 peer 하한인 15 에,
+  playground 는 최신인 16 에 고정해 두 메이저가 실제로 돌아간다. 이 한 건만 의존성 버전
+  일관성 검사에서 제외한다.
 - CI 잡은 `lint` · `typecheck` · `test` · `build` · `e2e` 로 분리한다. **빌드 성공을 타입 안전의 증거로
   쓰지 않는다.** 번들러는 타입을 검사하지 않고 지운다. 여기에 더해 의존성 버전 일관성(sherif)과
   미사용 export(knip) 검사를 둔다.
