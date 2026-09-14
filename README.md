@@ -250,6 +250,102 @@ export async function POST({ request }) {
 The one thing an adapter adds is the request context the `'auto'` rules need. Pass it yourself
 here; the core cannot ask a framework what request it is handling.
 
+## Do you have to use fetch?
+
+No. conciergekit never calls `fetch` itself, and nothing in it requires you to.
+
+`forward` returns a `RequestInit` because that is the shape most callers want, but the only
+thing inside it that conciergekit owns is a `cookie` header. Take it and hand it to any client:
+
+```ts
+const init = forwardRequestCookies(request, undefined, { cookies: ['access_token'] });
+const cookie = new Headers(init.headers).get('cookie');
+
+await axios.get(url, { headers: { cookie } });
+```
+
+Coming back, the relay reads a `Headers`, not a `Response`. Build one from whatever shape your
+client reports:
+
+```ts
+const raw = response.headers['set-cookie']; // axios, node:http, got
+const lines = Array.isArray(raw) ? raw : splitSetCookieString(raw ?? '');
+
+const from = new Headers();
+for (const line of lines) from.append('set-cookie', line);
+
+relaySetCookies(from, outgoing.headers, policy, context);
+```
+
+That second branch matters. A client that joins several cookies into one comma-separated string
+is exactly the case `splitSetCookieString` exists for, and it knows the comma inside
+`Expires=Tue, 21 Oct 2025 ...` is not a separator.
+
+`examples/runtimes` proves all of this with `node:http` and no `fetch` anywhere.
+
+The Next.js adapter is the one place fetch shows up, and even there it is your call, not the
+package's: `relay.route()` performs the request for you, while `relay.forward()` and
+`relay.respond()` only prepare and consume one.
+
+## Nuxt and other runtimes
+
+There is no `@concierge-kit/h3` package yet, and the core does not need one to work. h3 already
+hands you a standard `Request`, so the whole Nuxt recipe is about fifteen lines:
+
+```ts
+// server/api/login.ts
+import {
+  appendResponseHeader,
+  defineEventHandler,
+  getRequestHost,
+  getRequestProtocol,
+  toWebRequest,
+} from 'h3';
+import { forwardRequestCookies, pipeSetCookies } from '@concierge-kit/core';
+
+const policy = {
+  allow: ['access_token'],
+  domain: 'auto',
+  secure: 'auto',
+  sameSite: 'auto',
+} as const;
+
+export default defineEventHandler(async (event) => {
+  const request = toWebRequest(event);
+  const context = { proto: getRequestProtocol(event), host: getRequestHost(event) };
+
+  const upstream = await fetch(
+    API,
+    forwardRequestCookies(request, {}, { cookies: ['access_token'] }),
+  );
+
+  pipeSetCookies(
+    upstream,
+    ({ raw }) => appendResponseHeader(event, 'set-cookie', raw),
+    policy,
+    context,
+  );
+  return upstream.json();
+});
+```
+
+This recipe is not advice, it is a test. `examples/runtimes` runs it against a real h3 server and
+asserts the same scenarios as the Next end-to-end suite: the `Domain` a host cannot match is
+stripped, `Secure` goes away over plain http, `SameSite=None` becomes `Lax`, `Partitioned`
+survives, and nothing outside the allow list moves in either direction.
+
+Two things differ from Next. `onUnappliable` means nothing here, because writing a cookie
+mid-render is a React Server Component restriction and Nuxt can write response headers during an
+SSR render. And the request context has to be built from `getRequestProtocol` and
+`getRequestHost`, since the core cannot ask a framework what request it is handling.
+
+A dedicated adapter is waiting on h3 v2. Nuxt 4 still ships h3 v1 through nitropack, while v2 is
+at release candidate and moves to web standards; publishing now would mean splitting the package
+across both majors almost immediately.
+
+SvelteKit and Hono need even less, because their handlers already receive a standard `Request`
+and return a standard `Response`. See the section above.
+
 ## Status
 
 Maturity is reported as test counts, not as check marks.
@@ -278,8 +374,8 @@ Maturity is reported as test counts, not as check marks.
 | h3 / Nuxt adapter                   |                                                       |     0 | Absent           |
 | React server components             |                                                       |     0 | Absent           |
 
-Totals: 97 unit and type tests in the core, 33 integration tests in the Next adapter, 12 browser
-tests end to end.
+Totals: 97 unit and type tests in the core, 33 integration tests in the Next adapter, 6 for the
+documented runtime recipes, and 12 browser tests end to end.
 
 The end to end suite runs against `dev.example.test`, not `localhost`. Browsers treat `localhost`
 as a secure context, so they store a `Secure` cookie over plain http and never show a `Domain`

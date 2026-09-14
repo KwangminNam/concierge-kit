@@ -1,0 +1,20 @@
+{
+  "name": "@concierge-kit/example-runtimes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The runtime recipes from the README, kept honest by running them.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@concierge-kit/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "h3": "^1.15.11",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
