@@ -1,4 +1,4 @@
-import { createRelay } from '@conciergekit/core';
+import { createRelay } from '@concierge-kit/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { state } from './frameworkMock.js';
 import { createPassthroughRoute } from './route.js';

@@ -1,10 +1,10 @@
-# @conciergekit/next
+# @concierge-kit/next
 
-Next.js App Router adapter for [conciergekit](https://github.com/conciergekit/conciergekit).
+Next.js App Router adapter for [concierge-kit](https://github.com/KwangminNam/concierge-kit).
 Relays cookies between the browser and your backend from route handlers and server actions.
 
 ```sh
-pnpm add @conciergekit/next
+pnpm add @concierge-kit/next
 ```
 
 Peer: `next` 15 or 16, React 18.2 or later. Node 20.9 or later.
@@ -13,7 +13,7 @@ Peer: `next` 15 or 16, React 18.2 or later. Node 20.9 or later.
 
 ```ts
 // lib/relay.ts
-import { createRelay } from '@conciergekit/next';
+import { createRelay } from '@concierge-kit/next';
 
 export const relay = createRelay({
   cookie: {

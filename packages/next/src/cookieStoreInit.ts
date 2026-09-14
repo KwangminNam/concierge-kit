@@ -1,17 +1,17 @@
-import { scanSetCookie, valueOf } from '@conciergekit/core';
+import { scanSetCookie, valueOf } from '@concierge-kit/core';
 import type { CookieStoreInit } from './framework.js';
 
 /**
  * Turns a finished `Set-Cookie` line into the object `cookies().set()` wants.
  *
- * This is the one place conciergekit has to take a cookie apart, because Next's cookie store
+ * This is the one place concierge-kit has to take a cookie apart, because Next's cookie store
  * has no way to accept a raw header. The rewriting has already happened by then, so the parse
  * is a last step rather than a round trip, and only attributes Next understands survive it.
  *
  * Attributes outside that set are lost on this path. The route handler path keeps them,
  * which is why it is the one to prefer.
  *
- * @see https://conciergekit.dev/guides/server-actions#attribute-loss
+ * @see https://concierge-kit.dev/guides/server-actions#attribute-loss
  */
 export function toCookieStoreInit(raw: string): CookieStoreInit | null {
   const scanned = scanSetCookie(raw);

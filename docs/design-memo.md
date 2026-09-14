@@ -1,4 +1,4 @@
-# conciergekit 설계 메모 (v1)
+# concierge-kit 설계 메모 (v1)
 
 > 상태: 확정. 구현의 근거 문서.
 > v1 범위는 **양방향 쿠키 릴레이 하나**. 그러나 패키지의 정체는 "쿠키 유틸"이 아니라
@@ -6,7 +6,7 @@
 
 ## 1. 이름
 
-`conciergekit`. npm 패키지명과 `@conciergekit` 조직 scope 가 모두 비어 있고, GitHub 에 동명 저장소가 없다.
+`concierge-kit`. npm 패키지명과 `@concierge-kit` 조직 scope 가 모두 비어 있고, GitHub 에 동명 저장소가 없다.
 
 호텔 컨시어지는 손님의 요청을 받아 바깥 세계와 직접 처리하고 결과만 가져다준다. 손님은 그 바깥
 세계와 한 번도 접촉하지 않는다. 브라우저가 백엔드의 존재를 모르는 이 패키지의 구조와 같은 관계다.
@@ -22,7 +22,7 @@
 | `gobetween`                               | 의미는 완벽("직접 대화하지 않는 두 당사자 사이의 중개자")했으나 동명 Go 로드밸런서가 별 2천 개 규모 |
 | `server-relay` / `batonpass` / `wallpass` | 사용 가능하지만 "편하게 해준다"는 뉘앙스가 없고 relay 는 GraphQL Relay 와 검색 충돌                 |
 
-배포 스코프는 `@conciergekit/core`, `@conciergekit/next`. 저장소 루트는 `conciergekit`.
+배포 스코프는 `@concierge-kit/core`, `@concierge-kit/next`. 저장소 루트는 `concierge-kit`.
 초기 버전은 `0.1.0`. 신규 패키지에 1.0 을 붙여 API 를 얼리지 않는다.
 
 ## 2. 계층
@@ -31,22 +31,22 @@
 애플리케이션 (route handler / server action / middleware)
       │  relay.forward() · relay.respond() · relay.apply()
       ▼
-@conciergekit/next                 프레임워크 어댑터 (얇음)
+@concierge-kit/next                 프레임워크 어댑터 (얇음)
       │  framework.ts 만 next/headers 를 import 한다
       ▼
 createRelay 인스턴스               정책 병합: 기본값 → 인스턴스 → 호출부
       │
       ▼
-@conciergekit/core  cookie/ headers/ policy/    Web 표준만 안다. 의존성 0
+@concierge-kit/core  cookie/ headers/ policy/    Web 표준만 안다. 의존성 0
 ```
 
 - 코어가 아는 타입은 `Request`, `Response`, `Headers`, `RequestInit` 넷뿐이다. 프레임워크 import 금지,
   `node:` 접두 모듈 금지. 그래서 Edge 런타임과 SvelteKit·Hono 처럼 표준을 쓰는 곳에서 어댑터 없이 돈다.
-- Node 전용 기능(AsyncLocalStorage 요청 컨텍스트)은 `@conciergekit/core/node` 서브패스로 격리한다.
+- Node 전용 기능(AsyncLocalStorage 요청 컨텍스트)은 `@concierge-kit/core/node` 서브패스로 격리한다.
   Edge 번들에서 import 만 해도 깨지는 일을 막는다.
 - 패키지는 **기능이 아니라 통합 대상**으로 쪼갠다. 쿠키·헤더·타임아웃은 코어 안의 폴더다.
   어댑터가 늘어날 때만 패키지가 는다.
-- 프레임워크 메이저 분기가 필요해지면 `@conciergekit/next-15` / `next-16` alias 서브패키지로 간다.
+- 프레임워크 메이저 분기가 필요해지면 `@concierge-kit/next-15` / `next-16` alias 서브패키지로 간다.
   그래서 어댑터의 프레임워크 API 접근 지점을 `framework.ts` 한 파일로 모았다. v1 은 분기 없음.
 
 ## 3. 공개 API
@@ -136,7 +136,7 @@ sid=abc; Path=/; Domain=.example.com; Secure; SameSite=None; Partitioned
 | 구조화 로깅              | `createRelay({ logger })` 훅. `RelayResult` 가 이미 값 없는 요약을 만든다             | redaction 키 목록은 정책에 추가                               |
 | 스트리밍/SSE·multipart   | `relay.respond` 가 `upstream.body` 를 그대로 넘기므로 이미 통과. 테스트만 추가        | 구조 변경 불필요                                              |
 | 미들웨어 런타임          | `packages/next` 에 `proxy.ts` 어댑터 추가                                             | 아래 참고                                                     |
-| **선언적 서버 컴포넌트** | `@conciergekit/react` 신규 어댑터 패키지                                              | 아래 참고                                                     |
+| **선언적 서버 컴포넌트** | `@concierge-kit/react` 신규 어댑터 패키지                                             | 아래 참고                                                     |
 
 ### 승격한 두 항목
 
@@ -148,7 +148,7 @@ Next 15 이하는 미들웨어 기본이 Edge 라 `globalThis` 가 Node 쪽과 �
 않는다. Next 16 은 `proxy.ts` 로 이름이 바뀌며 Node 런타임이 기본이라 이 함정이 사라진다.
 어댑터를 낼 때 버전별 경고를 dev 에서 출력한다.
 
-**`@conciergekit/react`.** 참고한 선언형 라이브러리의 성공 요인은 명령형 훅·경계를 JSX 로 바꾼 것이다.
+**`@concierge-kit/react`.** 참고한 선언형 라이브러리의 성공 요인은 명령형 훅·경계를 JSX 로 바꾼 것이다.
 RSC 대응물로 가치가 있는 것은 둘뿐이다. 쿠키 존재로 렌더를 가르는 `<Gate>`(보호 레이아웃마다
 반복되는 `cookies()` 읽고 `redirect()` 하는 코드를 대체), 그리고 릴레이 정책으로 upstream 을 호출해
 render-prop 으로 넘기는 `<Query>`. 코어는 프레임워크 무의존이라 JSX 를 담을 수 없고, React 서버

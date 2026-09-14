@@ -1,4 +1,4 @@
-import { createRelay } from '@conciergekit/next';
+import { createRelay } from '@concierge-kit/next';
 
 /** Where this server reaches the fake backend. Inside a container this is not the public origin. */
 export const BACKEND = process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:3100';

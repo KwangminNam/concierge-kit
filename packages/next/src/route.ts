@@ -1,4 +1,4 @@
-import { resolveRelayContext, type Relay, type RelayResult } from '@conciergekit/core';
+import { resolveRelayContext, type Relay, type RelayResult } from '@concierge-kit/core';
 import { toNextResponse } from './respond.js';
 
 /** Where a passthrough route sends the request. */
@@ -42,7 +42,7 @@ const BODYLESS_METHODS = new Set(['GET', 'HEAD']);
  * export const POST = relay.route(`${API}/login`);
  * ```
  *
- * @see https://conciergekit.dev/guides/passthrough
+ * @see https://concierge-kit.dev/guides/passthrough
  */
 export function createPassthroughRoute(
   relay: Relay,

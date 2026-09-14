@@ -1,10 +1,10 @@
 /**
- * Next.js App Router adapter for conciergekit.
+ * Next.js App Router adapter for concierge-kit.
  *
  * Every Next.js API this package touches lives in one file, `framework.ts`, so a breaking
  * change in Next stays in one place and tests can replace the framework by mocking one module.
  *
- * @see https://conciergekit.dev/reference/next
+ * @see https://concierge-kit.dev/reference/next
  */
 
 export { createRelay, type NextRelay } from './createRelay.js';
@@ -32,4 +32,4 @@ export type {
   RelayResult,
   SetCookieInfo,
   UnappliableMode,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';

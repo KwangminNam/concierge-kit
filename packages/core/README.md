@@ -1,6 +1,6 @@
-# @conciergekit/core
+# @concierge-kit/core
 
-The headless half of [conciergekit](https://github.com/conciergekit/conciergekit). Relays cookies
+The headless half of [concierge-kit](https://github.com/KwangminNam/concierge-kit). Relays cookies
 between a browser and a backend from any server runtime.
 
 Knows four types: `Request`, `Response`, `Headers`, `RequestInit`. No dependencies, no framework
@@ -8,13 +8,13 @@ imports, no Node built-ins in the main entry, so it runs unchanged on Edge, in S
 Hono, or in a plain script.
 
 ```sh
-pnpm add @conciergekit/core
+pnpm add @concierge-kit/core
 ```
 
 ## With an instance
 
 ```ts
-import { createRelay } from '@conciergekit/core';
+import { createRelay } from '@concierge-kit/core';
 
 const relay = createRelay({
   cookie: { allow: ['access_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
@@ -36,7 +36,7 @@ import {
   relaySetCookies,
   resolveRelayContext,
   prepareResponseHeaders,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';
 
 export async function POST({ request }) {
   const upstream = await fetch(
@@ -83,7 +83,7 @@ Attributes the code has never heard of survive because the code does not know th
 ## The Node subpath
 
 ```ts
-import { runWithRequest, getRequestSnapshot } from '@conciergekit/core/node';
+import { runWithRequest, getRequestSnapshot } from '@concierge-kit/core/node';
 ```
 
 An `AsyncLocalStorage` request snapshot, for runtimes with no other way to reach the current

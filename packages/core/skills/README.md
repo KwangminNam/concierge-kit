@@ -1,6 +1,6 @@
-# conciergekit, for an AI coding agent
+# concierge-kit, for an AI coding agent
 
-A short operating guide for an agent asked to add, change or migrate conciergekit usage.
+A short operating guide for an agent asked to add, change or migrate concierge-kit usage.
 The package README is the reference; this is the decision procedure.
 
 ## What this package is

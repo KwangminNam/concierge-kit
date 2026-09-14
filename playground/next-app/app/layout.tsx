@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export const metadata = { title: 'conciergekit playground' };
+export const metadata = { title: 'concierge-kit playground' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

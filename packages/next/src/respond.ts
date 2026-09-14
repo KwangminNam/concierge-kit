@@ -3,7 +3,7 @@ import {
   type Relay,
   type RelayContext,
   type RelayResult,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';
 import { createResponse, readRequestHeaders } from './framework.js';
 
 /** Options for {@link toNextResponse}. */
@@ -25,7 +25,7 @@ export interface RespondOptions {
  *
  * This is the path to prefer. Cookies are appended to the response headers as the raw strings
  * the backend sent, so two cookies that share a name but differ in `Path` both survive, and
- * attributes conciergekit has never heard of survive with them.
+ * attributes concierge-kit has never heard of survive with them.
  *
  * Hop-by-hop headers are dropped, and so is every upstream `Set-Cookie`, which is then put back
  * one at a time by the allow policy. Without that, a backend that sets an internal cookie would
@@ -39,7 +39,7 @@ export interface RespondOptions {
  * }
  * ```
  *
- * @see https://conciergekit.dev/guides/route-handlers
+ * @see https://concierge-kit.dev/guides/route-handlers
  */
 export async function toNextResponse(
   upstream: Response,

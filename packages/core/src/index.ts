@@ -1,11 +1,11 @@
 /**
- * conciergekit core. Web standards only, no framework imports, no Node built-ins.
+ * concierge-kit core. Web standards only, no framework imports, no Node built-ins.
  *
  * Everything here works unchanged in a Next.js route handler, a SvelteKit endpoint, a Hono
  * handler or a plain script, because the only types it knows are `Request`, `Response`,
  * `Headers` and `RequestInit`.
  *
- * @see https://conciergekit.dev
+ * @see https://concierge-kit.dev
  */
 
 export { createRelay, type Relay, type RelayCookieNames } from './createRelay.js';

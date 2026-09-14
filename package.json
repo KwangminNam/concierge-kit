@@ -1,5 +1,5 @@
 {
-  "name": "conciergekit",
+  "name": "concierge-kit",
   "version": "0.0.0",
   "private": true,
   "description": "Server-layer relay toolkit for frontend server runtimes (BFF). The concierge deals with the backend so your handlers do not have to.",
@@ -16,7 +16,7 @@
     "format:check": "prettier --check .",
     "deps:check": "sherif --ignore-dependency next",
     "unused:check": "knip",
-    "e2e": "pnpm --filter @conciergekit/e2e test"
+    "e2e": "pnpm --filter @concierge-kit/e2e test"
   },
   "devDependencies": {
     "knip": "^5.30.0",
@@ -30,5 +30,9 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KwangminNam/concierge-kit.git"
   }
 }

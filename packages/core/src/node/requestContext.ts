@@ -20,7 +20,7 @@ const storage = new AsyncLocalStorage<RelayRequestSnapshot>();
  * Lives under the `/node` subpath because `AsyncLocalStorage` does not exist on Edge, and
  * importing it from the main entry would break an Edge bundle that never even calls it.
  *
- * @see https://conciergekit.dev/reference/node#runwithrequest
+ * @see https://concierge-kit.dev/reference/node#runwithrequest
  */
 export function runWithRequest<T>(snapshot: RelayRequestSnapshot, fn: () => T): T {
   return storage.run(snapshot, fn);
@@ -29,7 +29,7 @@ export function runWithRequest<T>(snapshot: RelayRequestSnapshot, fn: () => T): 
 /**
  * The snapshot for the request in flight, or `undefined` outside {@link runWithRequest}.
  *
- * @see https://conciergekit.dev/reference/node#getrequestsnapshot
+ * @see https://concierge-kit.dev/reference/node#getrequestsnapshot
  */
 export function getRequestSnapshot(): RelayRequestSnapshot | undefined {
   return storage.getStore();

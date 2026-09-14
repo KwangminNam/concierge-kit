@@ -28,7 +28,7 @@ export interface OutgoingSetCookie {
  * how the Next.js adapter turns a render-time cookie store into a `'unappliable'` drop
  * instead of a crash.
  *
- * @see https://conciergekit.dev/reference/cookie#pipesetcookies
+ * @see https://concierge-kit.dev/reference/cookie#pipesetcookies
  */
 export function pipeSetCookies<const P extends CookieRelayPolicy>(
   from: Response | Headers,
@@ -87,7 +87,7 @@ export function pipeSetCookies<const P extends CookieRelayPolicy>(
  * ```
  *
  * @returns Which cookie names were relayed and which were dropped, with reasons. Never values.
- * @see https://conciergekit.dev/reference/cookie#relaysetcookies
+ * @see https://concierge-kit.dev/reference/cookie#relaysetcookies
  */
 export function relaySetCookies<const P extends CookieRelayPolicy>(
   from: Response | Headers,

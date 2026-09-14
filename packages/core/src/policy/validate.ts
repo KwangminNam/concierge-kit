@@ -10,7 +10,7 @@ import type { RelayOptions } from './types.js';
  *
  * Does nothing in production.
  *
- * @see https://conciergekit.dev/reference/create-relay#validation
+ * @see https://concierge-kit.dev/reference/create-relay#validation
  */
 export function validateRelayOptions(
   options: RelayOptions,
@@ -36,7 +36,7 @@ export function validateRelayOptions(
   } else {
     if (cookie.sameSite === 'none' && cookie.secure === 'strip') {
       throw new Error(
-        '[conciergekit] cookie.sameSite "none" with cookie.secure "strip" can never be stored: ' +
+        '[concierge-kit] cookie.sameSite "none" with cookie.secure "strip" can never be stored: ' +
           'SameSite=None requires Secure. Use sameSite "auto" to downgrade to Lax instead.',
       );
     }
@@ -95,7 +95,7 @@ function assertKnownKeys(what: string, value: object, known: readonly string[]):
   const unknown = Object.keys(value).filter((key) => !known.includes(key));
   if (unknown.length === 0) return;
   throw new Error(
-    `[conciergekit] unknown ${what} key: ${unknown.join(', ')}. ` +
+    `[concierge-kit] unknown ${what} key: ${unknown.join(', ')}. ` +
       `Known keys are ${known.join(', ')}.`,
   );
 }

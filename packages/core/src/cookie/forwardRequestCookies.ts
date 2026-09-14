@@ -16,7 +16,7 @@ import { matchCookie } from './matchCookie.js';
  * const upstream = await fetch(`${API}/me`, forwardRequestCookies(request, {}, { cookies: ['access_token'] }));
  * ```
  *
- * @see https://conciergekit.dev/reference/cookie#forwardrequestcookies
+ * @see https://concierge-kit.dev/reference/cookie#forwardrequestcookies
  */
 export function forwardRequestCookies(
   from: Request | Headers,

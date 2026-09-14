@@ -1,4 +1,4 @@
-import { createRelay } from '@conciergekit/core';
+import { createRelay } from '@concierge-kit/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { state } from './frameworkMock.js';
 import { forwardFromRequest } from './forward.js';

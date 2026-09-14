@@ -31,7 +31,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm --filter @conciergekit/playground-next start',
+    command: 'pnpm --filter @concierge-kit/playground-next start',
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -6,7 +6,7 @@
  * `Headers.getSetCookie()` is used whenever the runtime has it, which is every supported
  * Node version and every modern browser-standard implementation.
  *
- * @see https://conciergekit.dev/reference/cookie#splitsetcookie
+ * @see https://concierge-kit.dev/reference/cookie#splitsetcookie
  */
 export function splitSetCookie(headers: Headers): string[] {
   const withGetter = headers as Headers & { getSetCookie?: () => string[] };
@@ -24,7 +24,7 @@ export function splitSetCookie(headers: Headers): string[] {
  * A comma starts a new cookie only when the text that follows looks like `name=`, which is
  * what separates a real boundary from the comma inside an `Expires` date.
  *
- * @see https://conciergekit.dev/reference/cookie#splitsetcookiestring
+ * @see https://concierge-kit.dev/reference/cookie#splitsetcookiestring
  */
 export function splitSetCookieString(input: string): string[] {
   const out: string[] = [];

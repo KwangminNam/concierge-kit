@@ -4,7 +4,7 @@ import {
   type RelayCookieNames,
   type RelayOptions,
   type RelayResult,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';
 import { applyToCookieStore, type ApplyOptions } from './apply.js';
 import { forwardFromRequest } from './forward.js';
 import {
@@ -21,7 +21,7 @@ import { toNextResponse, type RespondOptions } from './respond.js';
  * Every method here is asynchronous, because reading the current request in Next is
  * asynchronous. The inherited core methods stay synchronous and work anywhere.
  *
- * @see https://conciergekit.dev/reference/next
+ * @see https://concierge-kit.dev/reference/next
  */
 export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<O> {
   /**
@@ -47,7 +47,7 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
  * @example
  * ```ts
  * // lib/relay.ts
- * import { createRelay } from '@conciergekit/next';
+ * import { createRelay } from '@concierge-kit/next';
  *
  * export const relay = createRelay({
  *   cookie: { allow: ['access_token', 'refresh_token'], domain: 'auto', secure: 'auto' },
@@ -56,7 +56,7 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
  * });
  * ```
  *
- * @see https://conciergekit.dev/reference/next#createrelay
+ * @see https://concierge-kit.dev/reference/next#createrelay
  */
 export function createRelay<const O extends RelayOptions>(options?: O): NextRelay<O> {
   const core = createCoreRelay(options);

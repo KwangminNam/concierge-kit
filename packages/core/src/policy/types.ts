@@ -1,15 +1,15 @@
 /**
  * Policy types. This file is the single source of truth for every configuration key
- * and default of conciergekit. Documentation is generated from here, never the other way round.
+ * and default of concierge-kit. Documentation is generated from here, never the other way round.
  *
- * @see https://conciergekit.dev/reference/policy
+ * @see https://concierge-kit.dev/reference/policy
  */
 
 /**
  * Minimal identity of a cookie. Deliberately carries **no value**: cookie values must never
  * reach a matcher callback, a log line, an error message or a test snapshot.
  *
- * @see https://conciergekit.dev/reference/policy#cookieinfo
+ * @see https://concierge-kit.dev/reference/policy#cookieinfo
  */
 export interface CookieInfo {
   /** Cookie name, exactly as it appeared on the wire. */
@@ -17,9 +17,9 @@ export interface CookieInfo {
 }
 
 /**
- * Everything conciergekit knows about an upstream `Set-Cookie` line, minus the value.
+ * Everything concierge-kit knows about an upstream `Set-Cookie` line, minus the value.
  *
- * @see https://conciergekit.dev/reference/policy#setcookieinfo
+ * @see https://concierge-kit.dev/reference/policy#setcookieinfo
  */
 export interface SetCookieInfo extends CookieInfo {
   /** `Domain` attribute as written upstream, including any leading dot. */
@@ -32,7 +32,7 @@ export interface SetCookieInfo extends CookieInfo {
   readonly httpOnly: boolean;
   /** `SameSite` attribute, lowercased, when it is one of the three legal values. */
   readonly sameSite?: 'strict' | 'lax' | 'none';
-  /** Lowercased names of every attribute present, including ones conciergekit never rewrites. */
+  /** Lowercased names of every attribute present, including ones concierge-kit never rewrites. */
   readonly attributes: readonly string[];
 }
 
@@ -40,7 +40,7 @@ export interface SetCookieInfo extends CookieInfo {
  * One allow condition. A plain string matches a cookie name exactly, a `RegExp` is tested
  * against the name, and a predicate receives the cookie identity without its value.
  *
- * @see https://conciergekit.dev/reference/policy#matchers
+ * @see https://concierge-kit.dev/reference/policy#matchers
  */
 export type CookieMatcher<I extends CookieInfo = SetCookieInfo> =
   boolean | string | RegExp | ((cookie: I) => boolean);
@@ -109,7 +109,7 @@ export interface RenameRules {
  *
  * `allow` has no default: with no policy at all nothing is relayed and development builds warn.
  *
- * @see https://conciergekit.dev/reference/policy#cookierelaypolicy
+ * @see https://concierge-kit.dev/reference/policy#cookierelaypolicy
  */
 export interface CookieRelayPolicy<
   A extends CookieMatcherInput<SetCookieInfo> = CookieMatcherInput<SetCookieInfo>,
@@ -136,7 +136,7 @@ export interface CookieRelayPolicy<
 /**
  * How browser request cookies are forwarded to the backend.
  *
- * @see https://conciergekit.dev/reference/policy#forwardpolicy
+ * @see https://concierge-kit.dev/reference/policy#forwardpolicy
  */
 export interface ForwardPolicy<
   C extends CookieMatcherInput<CookieInfo> = CookieMatcherInput<CookieInfo>,
@@ -172,7 +172,7 @@ export type DropReason =
 /**
  * What a relay call did. Names only: values never appear here, by design.
  *
- * @see https://conciergekit.dev/reference/policy#relayresult
+ * @see https://concierge-kit.dev/reference/policy#relayresult
  */
 export interface RelayResult<N extends string = string> {
   /** Names of the cookies written to the destination, after any rename. */
@@ -181,7 +181,7 @@ export interface RelayResult<N extends string = string> {
   readonly dropped: ReadonlyArray<{ readonly name: string; readonly reason: DropReason }>;
 }
 
-/** Anywhere conciergekit reports what it did. Receives names and reasons, never values. */
+/** Anywhere concierge-kit reports what it did. Receives names and reasons, never values. */
 export interface RelayLogger {
   warn(message: string): void;
 }
@@ -189,7 +189,7 @@ export interface RelayLogger {
 /**
  * Options for {@link createRelay}.
  *
- * @see https://conciergekit.dev/reference/create-relay
+ * @see https://concierge-kit.dev/reference/create-relay
  */
 export interface RelayOptions<
   A extends CookieMatcherInput<SetCookieInfo> = CookieMatcherInput<SetCookieInfo>,

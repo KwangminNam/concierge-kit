@@ -15,14 +15,14 @@ export type RelayCookieNames<O> = O extends { cookie: infer C } ? RelayedNames<C
  * `Request`, `Response` and `Headers` exist. Framework adapters wrap it and add the
  * request-shaped conveniences.
  *
- * @see https://conciergekit.dev/reference/create-relay
+ * @see https://concierge-kit.dev/reference/create-relay
  */
 export interface Relay<O extends RelayOptions = RelayOptions> {
   /** The options this relay was built with, resolved lazily by each call. */
   readonly options: O;
   /**
    * Relays the upstream `Set-Cookie` headers onto a response for the browser.
-   * @see https://conciergekit.dev/reference/cookie#relaysetcookies
+   * @see https://concierge-kit.dev/reference/cookie#relaysetcookies
    */
   relayCookies(
     from: Response | Headers,
@@ -31,12 +31,12 @@ export interface Relay<O extends RelayOptions = RelayOptions> {
   ): RelayResult<RelayCookieNames<O>>;
   /**
    * Builds the `RequestInit` for a backend call with the browser's allowed cookies attached.
-   * @see https://conciergekit.dev/reference/cookie#forwardrequestcookies
+   * @see https://concierge-kit.dev/reference/cookie#forwardrequestcookies
    */
   forwardCookies(from: Request | Headers, init?: RequestInit): RequestInit;
   /**
    * The upstream response headers that are safe to copy to the browser.
-   * @see https://conciergekit.dev/reference/headers#prepareresponseheaders
+   * @see https://concierge-kit.dev/reference/headers#prepareresponseheaders
    */
   prepareHeaders(from: Headers): Headers;
 }
@@ -56,7 +56,7 @@ export interface Relay<O extends RelayOptions = RelayOptions> {
  * });
  * ```
  *
- * @see https://conciergekit.dev/reference/create-relay
+ * @see https://concierge-kit.dev/reference/create-relay
  */
 export function createRelay<const O extends RelayOptions>(options?: O): Relay<O> {
   const resolved = (options ?? {}) as O;

@@ -9,7 +9,7 @@ import type { CookieInfo, CookieMatcher, CookieMatcherInput } from '../policy/ty
  * A predicate receives the cookie identity without its value, which is what keeps cookie
  * values out of user code by construction.
  *
- * @see https://conciergekit.dev/reference/cookie#matchcookie
+ * @see https://concierge-kit.dev/reference/cookie#matchcookie
  */
 export function matchCookie<I extends CookieInfo>(
   cookie: I,

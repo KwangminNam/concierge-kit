@@ -56,7 +56,7 @@ importers:
 
   packages/next:
     dependencies:
-      '@conciergekit/core':
+      '@concierge-kit/core':
         specifier: workspace:^
         version: link:../core
     devDependencies:
@@ -87,7 +87,7 @@ importers:
 
   playground/next-app:
     dependencies:
-      '@conciergekit/next':
+      '@concierge-kit/next':
         specifier: workspace:^
         version: link:../../packages/next
       next:

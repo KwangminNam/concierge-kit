@@ -1,7 +1,7 @@
 import type { RelayLogger } from '../policy/types.js';
 
 /**
- * True outside production builds. Every validation and warning in conciergekit is guarded by
+ * True outside production builds. Every validation and warning in concierge-kit is guarded by
  * this, so production pays nothing for them.
  */
 export function isDev(): boolean {
@@ -14,7 +14,7 @@ const seen = new Set<string>();
 export function devWarnOnce(logger: RelayLogger | undefined, key: string, message: string): void {
   if (!isDev() || seen.has(key)) return;
   seen.add(key);
-  (logger ?? console).warn(`[conciergekit] ${message}`);
+  (logger ?? console).warn(`[concierge-kit] ${message}`);
 }
 
 /** Test-only hook. Lets a spec assert on a warning that another spec already triggered. */

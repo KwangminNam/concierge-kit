@@ -1,4 +1,4 @@
-# conciergekit
+# concierge-kit
 
 A relay for the server layer of a frontend app. The concierge deals with the backend so your
 handlers do not have to.
@@ -9,7 +9,7 @@ watches a cookie disappear without an error. This package is that plumbing, decl
 
 ```ts
 // lib/relay.ts
-import { createRelay } from '@conciergekit/next';
+import { createRelay } from '@concierge-kit/next';
 
 export const relay = createRelay({
   cookie: {
@@ -60,8 +60,8 @@ rather than a snippet:
 ## Install
 
 ```sh
-pnpm add @conciergekit/next     # Next.js App Router, 15 or 16
-pnpm add @conciergekit/core     # any other server runtime
+pnpm add @concierge-kit/next     # Next.js App Router, 15 or 16
+pnpm add @concierge-kit/core     # any other server runtime
 ```
 
 ## Three ways to use it
@@ -172,7 +172,7 @@ dependencies, imports no framework and no Node built-in, so it runs unchanged on
 SvelteKit, in Hono, or in a plain script.
 
 ```ts
-import { forwardRequestCookies, relaySetCookies, resolveRelayContext } from '@conciergekit/core';
+import { forwardRequestCookies, relaySetCookies, resolveRelayContext } from '@concierge-kit/core';
 
 export async function POST({ request }) {
   const upstream = await fetch(API, forwardRequestCookies(request, { method: 'POST' }, policy));
@@ -222,7 +222,7 @@ Before, spread across three files:
 -  await setCookieFromApi(res.headers.getSetCookie());
 -}
 +// lib/relay.ts
-+import { createRelay } from '@conciergekit/next';
++import { createRelay } from '@concierge-kit/next';
 +
 +export const relay = createRelay({
 +  cookie: { allow: ['access_token', 'refresh_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
@@ -292,10 +292,10 @@ same render can see, and an h3 adapter for Nuxt.
 
 ## Packages
 
-| Package                               | What it is                                       |
-| ------------------------------------- | ------------------------------------------------ |
-| [`@conciergekit/core`](packages/core) | Web standards only, zero dependencies, Edge-safe |
-| [`@conciergekit/next`](packages/next) | Next.js App Router adapter, 15 and 16            |
+| Package                                | What it is                                       |
+| -------------------------------------- | ------------------------------------------------ |
+| [`@concierge-kit/core`](packages/core) | Web standards only, zero dependencies, Edge-safe |
+| [`@concierge-kit/next`](packages/next) | Next.js App Router adapter, 15 and 16            |
 
 ## Development
 
@@ -304,7 +304,7 @@ pnpm install
 pnpm test        # unit, type and integration tests
 pnpm typecheck   # a separate gate: a bundler strips types without checking them
 pnpm build
-pnpm --filter @conciergekit/e2e exec playwright install chromium
+pnpm --filter @concierge-kit/e2e exec playwright install chromium
 pnpm e2e
 ```
 

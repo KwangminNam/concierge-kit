@@ -4,7 +4,7 @@ import {
   type RelayContext,
   type RelayResult,
   type UnappliableMode,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';
 import { toCookieStoreInit } from './cookieStoreInit.js';
 import { readCookieStore } from './framework.js';
 import { resolveContext } from './respond.js';
@@ -54,7 +54,7 @@ export class UnappliableCookieError extends Error {
  * }
  * ```
  *
- * @see https://conciergekit.dev/guides/server-actions
+ * @see https://concierge-kit.dev/guides/server-actions
  */
 export async function applyToCookieStore(
   upstream: Response,
@@ -90,8 +90,8 @@ export async function applyToCookieStore(
       'Next.js allows cookies().set() only in a route handler or a server action, never during ' +
       'a render. Move the call, or set the cookie from a proxy so the same request can see it.';
     if (mode === 'throw')
-      throw new UnappliableCookieError(`[conciergekit] ${message}`, refused, firstFailure);
-    if (mode === 'warn') (relay.options.logger ?? console).warn(`[conciergekit] ${message}`);
+      throw new UnappliableCookieError(`[concierge-kit] ${message}`, refused, firstFailure);
+    if (mode === 'warn') (relay.options.logger ?? console).warn(`[concierge-kit] ${message}`);
   }
 
   return result;

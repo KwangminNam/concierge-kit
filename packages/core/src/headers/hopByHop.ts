@@ -5,7 +5,7 @@
  * decompresses the upstream body but leaves both headers saying it is still compressed, so
  * copying them makes the browser fail with a content decoding error.
  *
- * @see https://conciergekit.dev/reference/headers#hop-by-hop
+ * @see https://concierge-kit.dev/reference/headers#hop-by-hop
  */
 export const HOP_BY_HOP_HEADERS: readonly string[] = [
   'connection',
@@ -23,7 +23,7 @@ export const HOP_BY_HOP_HEADERS: readonly string[] = [
 /**
  * Copies headers, leaving out the ones that belong to the upstream hop.
  *
- * @see https://conciergekit.dev/reference/headers#striphopbyhopheaders
+ * @see https://concierge-kit.dev/reference/headers#striphopbyhopheaders
  */
 export function stripHopByHopHeaders(from: Headers): Headers {
   const out = new Headers(from);
@@ -38,7 +38,7 @@ export function stripHopByHopHeaders(from: Headers): Headers {
  * separately through the allow policy, so copying them here would hand the browser every
  * internal cookie the backend happened to set.
  *
- * @see https://conciergekit.dev/reference/headers#prepareresponseheaders
+ * @see https://concierge-kit.dev/reference/headers#prepareresponseheaders
  */
 export function prepareResponseHeaders(from: Headers): Headers {
   const out = stripHopByHopHeaders(from);

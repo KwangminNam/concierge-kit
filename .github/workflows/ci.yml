@@ -46,7 +46,7 @@ jobs:
         with: { node-version: '20.18.0', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Pin the Next major under test
-        run: pnpm --filter @conciergekit/next add -D next@${{ matrix.next }}
+        run: pnpm --filter @concierge-kit/next add -D next@${{ matrix.next }}
       - run: pnpm test
 
   build:
@@ -70,8 +70,8 @@ jobs:
         with: { node-version: '20.18.0', cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm --filter @conciergekit/e2e exec playwright install --with-deps chromium
-      - run: pnpm --filter @conciergekit/playground-next build
+      - run: pnpm --filter @concierge-kit/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @concierge-kit/playground-next build
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
         if: failure()

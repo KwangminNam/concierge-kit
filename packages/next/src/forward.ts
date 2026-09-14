@@ -1,4 +1,4 @@
-import type { Relay } from '@conciergekit/core';
+import type { Relay } from '@concierge-kit/core';
 import { readRequestHeaders } from './framework.js';
 
 /**
@@ -12,7 +12,7 @@ import { readRequestHeaders } from './framework.js';
  * const upstream = await fetch(`${API}/me`, await relay.forward(request));
  * ```
  *
- * @see https://conciergekit.dev/reference/next#forward
+ * @see https://concierge-kit.dev/reference/next#forward
  */
 export async function forwardFromRequest(
   relay: Relay,

@@ -1,4 +1,4 @@
-import { createRelay } from '@conciergekit/core';
+import { createRelay } from '@concierge-kit/core';
 import { describe, expect, it, vi } from 'vitest';
 import { withRelay } from './withRelay.js';
 

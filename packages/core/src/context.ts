@@ -4,7 +4,7 @@
  * The core cannot ask a framework what request it is handling, so this is passed in.
  * Adapters fill it automatically; pure-function users pass it themselves.
  *
- * @see https://conciergekit.dev/reference/relay-context
+ * @see https://concierge-kit.dev/reference/relay-context
  */
 import { headersOfRequest } from './internal/toHeaders.js';
 
@@ -25,7 +25,7 @@ export interface RelayContext {
  * Returns `undefined` when neither source says anything, in which case every `'auto'` rule
  * falls back to leaving the cookie untouched.
  *
- * @see https://conciergekit.dev/reference/relay-context#resolve
+ * @see https://concierge-kit.dev/reference/relay-context#resolve
  */
 export function resolveRelayContext(from: Request | Headers): RelayContext | undefined {
   const headers = headersOfRequest(from);

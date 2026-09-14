@@ -7,10 +7,10 @@ import { NextResponse } from 'next/server';
  * Everything else works against these four functions, so a breaking change in Next lands in
  * this file and nowhere else, and a test can replace the whole framework by mocking one module.
  *
- * @see https://conciergekit.dev/reference/next#framework
+ * @see https://concierge-kit.dev/reference/next#framework
  */
 
-/** The subset of Next's cookie store conciergekit writes to. */
+/** The subset of Next's cookie store concierge-kit writes to. */
 export interface WritableCookieStore {
   set(options: CookieStoreInit): unknown;
 }

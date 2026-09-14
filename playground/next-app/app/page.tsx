@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function Home() {
   return (
     <main>
-      <h1 id="title">conciergekit playground</h1>
+      <h1 id="title">concierge-kit playground</h1>
       <ul>
         <li>
           <Link href="/action">server action</Link>

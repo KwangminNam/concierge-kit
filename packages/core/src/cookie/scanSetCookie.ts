@@ -20,7 +20,7 @@ export interface CookieSegment {
  * A `Set-Cookie` line indexed by offset rather than parsed into an object.
  *
  * Nothing here copies the cookie apart, which is the point: rewriting works by splicing the
- * original string, so attributes conciergekit has never heard of survive byte for byte.
+ * original string, so attributes concierge-kit has never heard of survive byte for byte.
  */
 export interface ScannedSetCookie {
   readonly raw: string;
@@ -36,9 +36,9 @@ export interface ScannedSetCookie {
 
 /**
  * Indexes a raw `Set-Cookie` line. Returns `null` when the line has no `name=value` pair,
- * which is the only shape conciergekit refuses to touch.
+ * which is the only shape concierge-kit refuses to touch.
  *
- * @see https://conciergekit.dev/reference/cookie#scansetcookie
+ * @see https://concierge-kit.dev/reference/cookie#scansetcookie
  */
 export function scanSetCookie(raw: string): ScannedSetCookie | null {
   const segments = splitSegments(raw);
@@ -71,7 +71,7 @@ export function scanSetCookie(raw: string): ScannedSetCookie | null {
 }
 
 /**
- * Reads the attributes conciergekit reasons about into a value-free description.
+ * Reads the attributes concierge-kit reasons about into a value-free description.
  * Everything else is still listed by name in `attributes`.
  */
 export function toSetCookieInfo(scanned: ScannedSetCookie): SetCookieInfo {

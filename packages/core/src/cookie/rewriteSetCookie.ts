@@ -21,7 +21,7 @@ type ValueAction = { kind: 'keep' } | { kind: 'set'; value: string };
  * not exist when this was written, passes through untouched because the code never takes
  * the cookie apart.
  *
- * @see https://conciergekit.dev/reference/cookie#rewritesetcookie
+ * @see https://concierge-kit.dev/reference/cookie#rewritesetcookie
  */
 export function rewriteSetCookie(
   scanned: ScannedSetCookie,

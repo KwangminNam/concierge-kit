@@ -3,7 +3,7 @@ import {
   type Relay,
   type RelayContext,
   type RelayResult,
-} from '@conciergekit/core';
+} from '@concierge-kit/core';
 import { toNextResponse } from './respond.js';
 
 /** The relay helpers handed to a wrapped handler. */
@@ -43,7 +43,7 @@ export type RelayHandler<A extends unknown[] = []> = (
  * });
  * ```
  *
- * @see https://conciergekit.dev/reference/next#withrelay
+ * @see https://concierge-kit.dev/reference/next#withrelay
  */
 export function withRelay<A extends unknown[] = []>(
   relay: Relay,

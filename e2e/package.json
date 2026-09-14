@@ -1,5 +1,5 @@
 {
-  "name": "@conciergekit/e2e",
+  "name": "@concierge-kit/e2e",
   "version": "0.0.0",
   "private": true,
   "scripts": {
