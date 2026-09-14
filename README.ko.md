@@ -125,6 +125,7 @@ export async function POST(request: Request) {
 
 ```sh
 pnpm add @concierge-kit/next     # Next.js App Router, 15 또는 16
+pnpm add @concierge-kit/h3       # Nuxt, 또는 nitro·h3 서버
 pnpm add @concierge-kit/core     # 그 밖의 서버 런타임
 ```
 
@@ -287,64 +288,50 @@ fetch 가 등장하는 유일한 곳은 Next.js 어댑터이고, 거기서도 �
 `relay.route()` 는 요청을 대신 보내 주지만, `relay.forward()` 와 `relay.respond()` 는 요청을
 준비하고 응답을 읽을 뿐입니다.
 
-## Nuxt 과 그 밖의 런타임
+## Nuxt
 
-`@concierge-kit/h3` 패키지는 아직 없고, 코어는 그것 없이도 동작합니다. h3 가 이미 표준
-`Request` 를 만들어 주기 때문에 Nuxt 레시피 전체가 열다섯 줄 남짓입니다.
+```sh
+pnpm add @concierge-kit/h3
+```
 
 ```ts
-// server/api/login.ts
-import {
-  appendResponseHeader,
-  defineEventHandler,
-  getRequestHost,
-  getRequestProtocol,
-  toWebRequest,
-} from 'h3';
-import { forwardRequestCookies, pipeSetCookies } from '@concierge-kit/core';
+// server/utils/relay.ts
+import { createRelay } from '@concierge-kit/h3';
 
-const policy = {
-  allow: ['access_token'],
-  domain: 'auto',
-  secure: 'auto',
-  sameSite: 'auto',
-} as const;
-
-export default defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  const context = { proto: getRequestProtocol(event), host: getRequestHost(event) };
-
-  const upstream = await fetch(
-    API,
-    forwardRequestCookies(request, {}, { cookies: ['access_token'] }),
-  );
-
-  pipeSetCookies(
-    upstream,
-    ({ raw }) => appendResponseHeader(event, 'set-cookie', raw),
-    policy,
-    context,
-  );
-  return upstream.json();
+export const relay = createRelay({
+  cookie: { allow: ['access_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
+  forward: { cookies: ['access_token'] },
 });
 ```
 
-이 레시피는 권장 사항이 아니라 테스트입니다. `examples/runtimes` 가 실제 h3 서버에 대고 이 코드를
-돌리며 Next e2e 와 같은 시나리오를 검증합니다. 호스트가 매치할 수 없는 `Domain` 제거, 평문
-http 에서 `Secure` 제거, `SameSite=None` 의 `Lax` 강등, `Partitioned` 보존, 그리고 양방향
-모두에서 allow 밖의 것이 움직이지 않는다는 것입니다.
+```ts
+// server/api/login.post.ts
+export default defineEventHandler(async (event) => {
+  const upstream = await fetch(`${API}/login`, relay.forward(event, { method: 'POST' }));
+  return relay.respond(event, upstream);
+});
 
-Next 과 다른 점이 둘 있습니다. `onUnappliable` 은 여기서 의미가 없습니다. 렌더 중 쿠키 설정
-제약은 React 서버 컴포넌트의 것이고 Nuxt 는 SSR 렌더 중에도 응답 헤더를 쓸 수 있습니다.
-그리고 요청 컨텍스트를 `getRequestProtocol` 과 `getRequestHost` 로 직접 만들어야 합니다.
-코어는 자기가 어떤 요청을 처리 중인지 프레임워크에 물어볼 수단이 없기 때문입니다.
+// 또는 재수출 한 줄로
+export default relay.route(`${API}/login`);
+```
 
-전용 어댑터는 h3 v2 를 기다리고 있습니다. Nuxt 4 는 아직 nitropack 을 거쳐 h3 v1 을 쓰고,
-v2 는 릴리스 후보 단계이며 웹 표준으로 옮겨갑니다. 지금 내면 곧바로 두 메이저로 패키지를
-쪼개야 합니다.
+h3 어댑터는 Next.js 것보다 두 가지 면에서 단순합니다. 쓰기 경로가 둘이 아니라 하나입니다.
+h3 핸들러는 언제나 응답 헤더를 추가할 수 있어서 쿠키가 항상 백엔드가 보낸 원문 그대로
+전달됩니다. 그리고 `onUnappliable` 은 여기서 의미가 없습니다. 렌더 중에 쿠키를 쓸 수 없다는
+React 서버 컴포넌트 규칙을 설명하는 옵션이고 Nuxt 에는 대응물이 없습니다.
 
-SvelteKit 과 Hono 는 더 적게 듭니다. 핸들러가 이미 표준 `Request` 를 받고 표준 `Response` 를
-돌려주기 때문입니다. 바로 위 절을 보세요.
+`forward` 와 `apply` 는 동기입니다. h3 가 요청을 바로 건네주기 때문입니다. 비동기인 것은 응답을
+보내는 `respond` 뿐입니다.
+
+peer 는 `h3` 1.15 이상이고, Nuxt 4 가 nitropack 을 거쳐 쓰는 버전입니다. h3 v2 가 웹 표준으로
+옮겨가면 어댑터의 파일 하나만 바뀝니다.
+
+## 그 밖의 런타임
+
+SvelteKit, Hono, Cloudflare Workers, Deno 는 어댑터가 아예 필요 없습니다. 핸들러가 이미 표준
+`Request` 를 받고 표준 `Response` 를 돌려주기 때문입니다.
+[어댑터 없이 쓰기](#어댑터-없이-쓰기) 를 보세요. `examples/runtimes` 가 그 경로를 실제로
+실행합니다.
 
 ## 상태
 
@@ -374,8 +361,8 @@ SvelteKit 과 Hono 는 더 적게 듭니다. 핸들러가 이미 표준 `Request
 | h3 / Nuxt 어댑터                    |                                         |      0 | 없음                   |
 | React 서버 컴포넌트                 |                                         |      0 | 없음                   |
 
-합계는 코어 단위·타입 테스트 97개, Next 어댑터 통합 테스트 33개, 문서화된 런타임 레시피 6개,
-브라우저 e2e 12개입니다.
+합계는 코어 단위·타입 테스트 97개, Next 어댑터 통합 테스트 33개, h3 어댑터 14개,
+문서화된 런타임 레시피 6개, 브라우저 e2e 12개입니다.
 
 e2e 는 `localhost` 가 아니라 `dev.example.test` 에서 돕니다. 브라우저는 `localhost` 를
 secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저장하고 `Domain` 불일치도
@@ -388,8 +375,7 @@ secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저�
 리다이렉트 경로 정규화, 타임아웃과 재시도, 에러 정규화, 구조화 로깅, 그리고 미들웨어 어댑터.
 각각이 현재 구조의 어디에 들어가는지는 `docs/design-memo.md` 에 적어 두었습니다.
 
-다음 두 가지는 순서대로 미들웨어 어댑터와 Nuxt 용 h3 어댑터입니다. 앞의 것은 같은 렌더가 볼 수
-있는 쿠키를 설정하는 유일한 방법이기도 합니다.
+다음은 미들웨어 어댑터입니다. 같은 렌더가 볼 수 있는 쿠키를 설정하는 유일한 방법입니다.
 
 ## 패키지
 
@@ -397,6 +383,7 @@ secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저�
 | -------------------------------------- | ----------------------------------- |
 | [`@concierge-kit/core`](packages/core) | Web 표준만, 의존성 0, Edge 안전     |
 | [`@concierge-kit/next`](packages/next) | Next.js App Router 어댑터, 15 와 16 |
+| [`@concierge-kit/h3`](packages/h3)     | h3 및 Nuxt 어댑터                   |
 
 ## 개발
 

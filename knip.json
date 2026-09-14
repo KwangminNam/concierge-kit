@@ -18,6 +18,10 @@
     },
     "examples/runtimes": {
       "project": ["src/**/*.ts"]
+    },
+    "packages/h3": {
+      "project": ["src/**/*.ts"],
+      "entry": ["src/testServer.ts"]
     }
   }
 }

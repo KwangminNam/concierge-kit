@@ -126,6 +126,7 @@ rather than a snippet:
 
 ```sh
 pnpm add @concierge-kit/next     # Next.js App Router, 15 or 16
+pnpm add @concierge-kit/h3       # Nuxt, or any nitro or h3 server
 pnpm add @concierge-kit/core     # any other server runtime
 ```
 
@@ -287,64 +288,50 @@ The Next.js adapter is the one place fetch shows up, and even there it is your c
 package's: `relay.route()` performs the request for you, while `relay.forward()` and
 `relay.respond()` only prepare and consume one.
 
-## Nuxt and other runtimes
+## Nuxt
 
-There is no `@concierge-kit/h3` package yet, and the core does not need one to work. h3 already
-hands you a standard `Request`, so the whole Nuxt recipe is about fifteen lines:
+```sh
+pnpm add @concierge-kit/h3
+```
 
 ```ts
-// server/api/login.ts
-import {
-  appendResponseHeader,
-  defineEventHandler,
-  getRequestHost,
-  getRequestProtocol,
-  toWebRequest,
-} from 'h3';
-import { forwardRequestCookies, pipeSetCookies } from '@concierge-kit/core';
+// server/utils/relay.ts
+import { createRelay } from '@concierge-kit/h3';
 
-const policy = {
-  allow: ['access_token'],
-  domain: 'auto',
-  secure: 'auto',
-  sameSite: 'auto',
-} as const;
-
-export default defineEventHandler(async (event) => {
-  const request = toWebRequest(event);
-  const context = { proto: getRequestProtocol(event), host: getRequestHost(event) };
-
-  const upstream = await fetch(
-    API,
-    forwardRequestCookies(request, {}, { cookies: ['access_token'] }),
-  );
-
-  pipeSetCookies(
-    upstream,
-    ({ raw }) => appendResponseHeader(event, 'set-cookie', raw),
-    policy,
-    context,
-  );
-  return upstream.json();
+export const relay = createRelay({
+  cookie: { allow: ['access_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
+  forward: { cookies: ['access_token'] },
 });
 ```
 
-This recipe is not advice, it is a test. `examples/runtimes` runs it against a real h3 server and
-asserts the same scenarios as the Next end-to-end suite: the `Domain` a host cannot match is
-stripped, `Secure` goes away over plain http, `SameSite=None` becomes `Lax`, `Partitioned`
-survives, and nothing outside the allow list moves in either direction.
+```ts
+// server/api/login.post.ts
+export default defineEventHandler(async (event) => {
+  const upstream = await fetch(`${API}/login`, relay.forward(event, { method: 'POST' }));
+  return relay.respond(event, upstream);
+});
 
-Two things differ from Next. `onUnappliable` means nothing here, because writing a cookie
-mid-render is a React Server Component restriction and Nuxt can write response headers during an
-SSR render. And the request context has to be built from `getRequestProtocol` and
-`getRequestHost`, since the core cannot ask a framework what request it is handling.
+// or, as one re-export
+export default relay.route(`${API}/login`);
+```
 
-A dedicated adapter is waiting on h3 v2. Nuxt 4 still ships h3 v1 through nitropack, while v2 is
-at release candidate and moves to web standards; publishing now would mean splitting the package
-across both majors almost immediately.
+The h3 adapter is simpler than the Next.js one in two ways. There is one write path rather than
+two, because an h3 handler can always append a response header, so cookies always travel as the
+raw strings the backend sent. And `onUnappliable` means nothing here: it describes the React
+Server Component rule that a cookie cannot be written mid-render, which has no counterpart in
+Nuxt.
 
-SvelteKit and Hono need even less, because their handlers already receive a standard `Request`
-and return a standard `Response`. See the section above.
+`forward` and `apply` are synchronous, because h3 hands you the request directly. Only `respond`
+awaits, since it sends.
+
+Peer is `h3` 1.15 or later, which is what Nuxt 4 ships through nitropack. When h3 v2 moves to web
+standards, one file in the adapter changes.
+
+## Other runtimes
+
+SvelteKit, Hono, Cloudflare Workers and Deno need no adapter at all, because their handlers
+already receive a standard `Request` and return a standard `Response`. See
+[Without an adapter](#without-an-adapter). `examples/runtimes` runs that path for real.
 
 ## Status
 
@@ -374,8 +361,8 @@ Maturity is reported as test counts, not as check marks.
 | h3 / Nuxt adapter                   |                                                       |     0 | Absent           |
 | React server components             |                                                       |     0 | Absent           |
 
-Totals: 97 unit and type tests in the core, 33 integration tests in the Next adapter, 6 for the
-documented runtime recipes, and 12 browser tests end to end.
+Totals: 97 unit and type tests in the core, 33 integration tests in the Next adapter, 14 in the h3
+adapter, 6 for the documented runtime recipes, and 12 browser tests end to end.
 
 The end to end suite runs against `dev.example.test`, not `localhost`. Browsers treat `localhost`
 as a secure context, so they store a `Secure` cookie over plain http and never show a `Domain`
@@ -389,8 +376,8 @@ internal versus public base URLs, redirect path normalisation, timeouts and retr
 normalisation, structured logging, and a middleware adapter. Each has a place in the existing
 structure; see `docs/design-memo.md` for where each one lands.
 
-The next two, in order, are a middleware adapter, which is the only way to set a cookie that the
-same render can see, and an h3 adapter for Nuxt.
+The next one is a middleware adapter, which is the only way to set a cookie that the same render
+can see.
 
 ## Packages
 
