@@ -1,0 +1,34 @@
+{
+  "name": "conciergekit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Server-layer relay toolkit for frontend server runtimes (BFF). The concierge deals with the backend so your handlers do not have to.",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "oxlint packages e2e --deny-warnings",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "deps:check": "sherif --ignore-dependency next",
+    "unused:check": "knip",
+    "e2e": "pnpm --filter @conciergekit/e2e test"
+  },
+  "devDependencies": {
+    "knip": "^5.30.0",
+    "oxlint": "^0.15.0",
+    "prettier": "^3.3.3",
+    "sherif": "^1.0.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

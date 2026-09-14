@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "packages/core": { "project": ["src/**/*.ts"], "entry": ["src/**/*.test-d.ts"] },
+    "packages/next": { "project": ["src/**/*.ts"], "entry": ["src/frameworkMock.ts"] },
+    "playground/next-app": { "entry": ["app/**/*.{ts,tsx}"], "project": ["**/*.{ts,tsx}"] },
+    "e2e": { "project": ["**/*.ts"] }
+  }
+}
