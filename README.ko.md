@@ -9,6 +9,54 @@ Next.js App Router 도 Nuxt 도 프론트엔드가 자기 서버 런타임에서
 그렇게 하는 모든 프로젝트가 같은 배관 작업을 손으로 다시 쓰고, 속성 하나를 틀리고, 쿠키가
 아무 에러 없이 사라지는 것을 지켜봅니다. 이 패키지가 그 배관이며, 한 번만 선언하면 됩니다.
 
+## 쓰기 전과 후
+
+### 전
+
+파일 세 개, 마흔 줄 남짓, 그리고 에러 메시지 없이 사라지는 쿠키.
+
+```ts
+// setCookieFromApi.ts
+import { cookies } from 'next/headers';
+import setCookieParser from 'set-cookie-parser';
+
+export async function setCookieFromApi(setCookieList: string[]) {
+  if (setCookieList.length === 0) return;
+  const parsed = setCookieList.map((s) => setCookieParser.parse(s)[0]); // (1) 여기서 속성이 사라진다
+  await Promise.all(
+    parsed.map(async (cookie) => {
+      const store = await cookies();
+      store.set({
+        // (2) 이름이 키라 쿠키 하나가 다른 하나를 덮는다
+        ...cookie,
+        // domain: isDeploy() ? cookie.domain : undefined,   // (3) 포기하고 주석으로 남김
+        // secure: isDeploy() ? cookie.secure : false,
+        sameSite: cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
+      });
+    }),
+  );
+}
+
+// getRequestHeaders.ts
+const REQUIRED_HEADERS = ['cookie'];
+export async function getRequestHeaders() {
+  return [...(await headers()).entries()]
+    .filter(([k]) => REQUIRED_HEADERS.includes(k))
+    .reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
+}
+
+// FetchClient.ts
+const res = await fetch(fullURL, { ...options, headers: await getRequestHeaders() });
+if (options.method !== 'GET') {
+  // (4) 크래시를 우연히 가리고 있던 가드
+  await setCookieFromApi(res.headers.getSetCookie()); // (5) allow 목록 없음. 전부 통과
+}
+```
+
+### 후
+
+정책은 파일 하나가 선언합니다. 호출부는 한 줄입니다.
+
 ```ts
 // lib/relay.ts
 import { createRelay } from '@concierge-kit/next';
@@ -34,6 +82,20 @@ export async function POST(request: Request) {
   return relay.respond(upstream);
 }
 ```
+
+### 번호마다 치르던 대가
+
+|      | 전에 무엇이 잘못됐나                                                                    | 무엇이 보였나                                                                        | 지금은 어떻게 되나                                                                         |
+| ---- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| (1)  | 쿠키를 객체로 파싱했다가 다시 구워서, 파서가 모르는 속성이 전부 떨어졌다                | `Partitioned` 와 `Priority` 가 조용히 사라지고 CHIPS 가 깨진다                       | 원문 문자열을 잘라 붙이므로 코드가 들어본 적 없는 속성도 바이트 그대로 통과한다            |
+| (2)  | 프레임워크 쿠키 저장소는 이름이 키다                                                    | 이름이 같고 `Path` 가 다른 쿠키 둘이 하나로 합쳐진다                                 | 원문 헤더로 추가하므로 둘 다 살아남는다                                                    |
+| (3)  | 환경 차이를 해결한 적이 없고 주석 처리만 해 두었다                                      | localhost 의 `Domain=.example.com`, http 의 `Secure`. 브라우저가 아무 말 없이 버린다 | `domain: 'auto'` 와 `secure: 'auto'` 가 요청마다 판단하고, 거부 원인이 될 속성만 제거한다  |
+| (4)  | `method !== 'GET'` 가 렌더 중 쿠키 설정 시 Next 가 예외를 던진다는 사실을 가리고 있었다 | 운으로 동작했다. 쿠키가 필요한 첫 `GET` 에서 터진다                                  | 라우트 핸들러는 응답에 쓰고, `onUnappliable` 이 렌더 중 쓰기를 크래시 대신 기록으로 바꾼다 |
+| (5)  | 백엔드가 설정한 쿠키가 전부 브라우저까지 갔다                                           | 백엔드 내부 쿠키가 클라이언트로 새는데 아무도 모른다                                 | `allow` 는 필수이고 기본값은 아무것도 중계하지 않으며, 키 오타는 개발 중에 예외를 던진다   |
+| 전체 | 실제로 무슨 일이 일어났는지 알 방법이 없었다                                            | 응답 헤더를 손으로 읽으며 디버깅                                                     | 모든 호출이 `{ relayed, dropped }` 를 이름과 사유로 돌려준다. 값은 절대 없다               |
+
+호출부에서 사라지는 것은 메서드 분기, 환경 분기, 파싱 의존성, 헤더 수집 헬퍼입니다. 대신 생기는
+것은 "실제로 넘어갔는가, 안 넘어갔다면 왜인가"에 대한 답입니다.
 
 ## 쿠키가 사라지는 이유
 
@@ -186,64 +248,6 @@ export async function POST({ request }) {
 
 어댑터가 더해 주는 유일한 것은 `'auto'` 규칙이 판단 근거로 쓰는 요청 컨텍스트입니다. 여기서는
 직접 넘겨 주세요. 코어는 자기가 어떤 요청을 처리 중인지 프레임워크에 물어볼 수단이 없습니다.
-
-## 손으로 만든 릴레이 교체하기
-
-이전, 세 파일에 흩어져 있던 것:
-
-```diff
--// setCookieFromApi.ts
--import { cookies } from 'next/headers';
--import setCookieParser from 'set-cookie-parser';
--
--export async function setCookieFromApi(setCookieList: string[]) {
--  if (setCookieList.length === 0) return;
--  const parsed = setCookieList.map((s) => setCookieParser.parse(s)[0]);
--  await Promise.all(parsed.map(async (cookie) => {
--    const store = await cookies();
--    store.set({
--      ...cookie,
--      // domain: isDeploy() ? cookie.domain : undefined,
--      // secure: isDeploy() ? cookie.secure : false,
--      sameSite: cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
--    });
--  }));
--}
--
--// getRequestHeaders.ts
--const REQUIRED_HEADERS = ['cookie'];
--export async function getRequestHeaders() {
--  return [...(await headers()).entries()]
--    .filter(([k]) => REQUIRED_HEADERS.includes(k))
--    .reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
--}
--
--// FetchClient.ts
--const res = await fetch(fullURL, { ...options, headers: await getRequestHeaders() });
--if (options.method !== 'GET') {
--  await setCookieFromApi(res.headers.getSetCookie());
--}
-+// lib/relay.ts
-+import { createRelay } from '@concierge-kit/next';
-+
-+export const relay = createRelay({
-+  cookie: { allow: ['access_token', 'refresh_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
-+  forward: { cookies: ['access_token', 'refresh_token'] },
-+});
-+
-+// app/api/login/route.ts
-+export async function POST(request: Request) {
-+  const upstream = await fetch(fullURL, await relay.forward(request, options));
-+  return relay.respond(upstream);
-+}
-```
-
-이 diff 가 없애는 것을 순서대로 보면, `Partitioned` 와 `Priority` 를 떨구고 있던 파싱과 재조립,
-이름이 같은 쿠키 둘을 하나로 합치던 이름 키 저장소, 주석 처리된 채 방치된 환경별 처리,
-렌더 제약을 우연히 가리고 있던 `method !== 'GET'` 가드, 그리고 모든 백엔드 쿠키를 통과시키던
-allow 목록의 부재입니다.
-
-대신 생기는 것은 어떤 쿠키가 중계됐고 나머지는 왜 안 됐는지 알려주는 반환값입니다.
 
 ## 상태
 

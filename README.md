@@ -9,6 +9,54 @@ Next.js App Router and Nuxt both let the frontend call a backend from their own 
 Every project that does it writes the same plumbing by hand, gets one attribute wrong, and
 watches a cookie disappear without an error. This package is that plumbing, declared once.
 
+## Before and after
+
+### Before
+
+Three files, about forty lines, and a cookie that vanishes without an error message.
+
+```ts
+// setCookieFromApi.ts
+import { cookies } from 'next/headers';
+import setCookieParser from 'set-cookie-parser';
+
+export async function setCookieFromApi(setCookieList: string[]) {
+  if (setCookieList.length === 0) return;
+  const parsed = setCookieList.map((s) => setCookieParser.parse(s)[0]); // (1) attributes lost here
+  await Promise.all(
+    parsed.map(async (cookie) => {
+      const store = await cookies();
+      store.set({
+        // (2) keyed by name, so one cookie overwrites another
+        ...cookie,
+        // domain: isDeploy() ? cookie.domain : undefined,   // (3) gave up, left commented
+        // secure: isDeploy() ? cookie.secure : false,
+        sameSite: cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
+      });
+    }),
+  );
+}
+
+// getRequestHeaders.ts
+const REQUIRED_HEADERS = ['cookie'];
+export async function getRequestHeaders() {
+  return [...(await headers()).entries()]
+    .filter(([k]) => REQUIRED_HEADERS.includes(k))
+    .reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
+}
+
+// FetchClient.ts
+const res = await fetch(fullURL, { ...options, headers: await getRequestHeaders() });
+if (options.method !== 'GET') {
+  // (4) a guard that happens to hide a crash
+  await setCookieFromApi(res.headers.getSetCookie()); // (5) no allow list: everything gets through
+}
+```
+
+### After
+
+One file declares the policy. Call sites are one line.
+
 ```ts
 // lib/relay.ts
 import { createRelay } from '@concierge-kit/next';
@@ -34,6 +82,21 @@ export async function POST(request: Request) {
   return relay.respond(upstream);
 }
 ```
+
+### What each of those numbers was costing you
+
+|     | What went wrong before                                                                                      | What you saw                                                                                      | What happens now                                                                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| (1) | The cookie was parsed into an object and baked again, so any attribute the parser did not model was dropped | `Partitioned` and `Priority` silently missing, and CHIPS quietly broken                           | The original string is spliced, so attributes the code has never heard of pass through byte for byte                            |
+| (2) | The framework cookie store is keyed by name                                                                 | Two cookies sharing a name but differing in `Path` collapsed into one                             | Cookies are appended as raw headers, so both survive                                                                            |
+| (3) | Environment differences were never solved, just commented out                                               | `Domain=.example.com` on localhost, `Secure` over http: the browser discarded them without a word | `domain: 'auto'` and `secure: 'auto'` judge per request, and only ever remove an attribute that would have caused the rejection |
+| (4) | `method !== 'GET'` was hiding the fact that Next throws when a cookie is set during a render                | Worked by luck. The first `GET` that needed a cookie would crash                                  | Route handlers write to the response, and `onUnappliable` turns a render-time write into a reported drop instead of a crash     |
+| (5) | Every cookie the backend set reached the browser                                                            | An internal backend cookie leaking to the client, unnoticed                                       | `allow` is required, nothing is relayed by default, and a wrong key throws in development                                       |
+| all | There was no way to know what actually happened                                                             | Debugging by reading response headers by hand                                                     | Every call returns `{ relayed, dropped }` with names and reasons. Never values                                                  |
+
+What disappears from the call site is the method branch, the environment branch, the parsing
+dependency and the header-collecting helper. What appears is an answer to "did it actually go
+through, and if not, why".
 
 ## Why a cookie disappears
 
@@ -186,65 +249,6 @@ export async function POST({ request }) {
 
 The one thing an adapter adds is the request context the `'auto'` rules need. Pass it yourself
 here; the core cannot ask a framework what request it is handling.
-
-## Replacing a hand rolled relay
-
-Before, spread across three files:
-
-```diff
--// setCookieFromApi.ts
--import { cookies } from 'next/headers';
--import setCookieParser from 'set-cookie-parser';
--
--export async function setCookieFromApi(setCookieList: string[]) {
--  if (setCookieList.length === 0) return;
--  const parsed = setCookieList.map((s) => setCookieParser.parse(s)[0]);
--  await Promise.all(parsed.map(async (cookie) => {
--    const store = await cookies();
--    store.set({
--      ...cookie,
--      // domain: isDeploy() ? cookie.domain : undefined,
--      // secure: isDeploy() ? cookie.secure : false,
--      sameSite: cookie.sameSite as 'lax' | 'strict' | 'none' | undefined,
--    });
--  }));
--}
--
--// getRequestHeaders.ts
--const REQUIRED_HEADERS = ['cookie'];
--export async function getRequestHeaders() {
--  return [...(await headers()).entries()]
--    .filter(([k]) => REQUIRED_HEADERS.includes(k))
--    .reduce((acc, [k, v]) => Object.assign(acc, { [k]: v }), {});
--}
--
--// FetchClient.ts
--const res = await fetch(fullURL, { ...options, headers: await getRequestHeaders() });
--if (options.method !== 'GET') {
--  await setCookieFromApi(res.headers.getSetCookie());
--}
-+// lib/relay.ts
-+import { createRelay } from '@concierge-kit/next';
-+
-+export const relay = createRelay({
-+  cookie: { allow: ['access_token', 'refresh_token'], domain: 'auto', secure: 'auto', sameSite: 'auto' },
-+  forward: { cookies: ['access_token', 'refresh_token'] },
-+});
-+
-+// app/api/login/route.ts
-+export async function POST(request: Request) {
-+  const upstream = await fetch(fullURL, await relay.forward(request, options));
-+  return relay.respond(upstream);
-+}
-```
-
-What the diff removes, in order: the parse and rebuild that was dropping `Partitioned` and
-`Priority`; the name-keyed store that was collapsing two cookies sharing a name; the commented
-out environment handling; the `method !== 'GET'` guard that was hiding the render restriction by
-accident; and the absence of an allow list, which let every backend cookie through.
-
-What it adds is a return value that tells you which cookies were relayed and why the rest were
-not.
 
 ## Status
 
