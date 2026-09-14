@@ -1,5 +1,7 @@
 # @concierge-kit/core
 
+**English** · [한국어](./README.ko.md)
+
 The headless half of [concierge-kit](https://github.com/KwangminNam/concierge-kit). Relays cookies
 between a browser and a backend from any server runtime.
 

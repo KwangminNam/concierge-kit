@@ -46,7 +46,8 @@
   "files": [
     "dist",
     "skills",
-    "README.md"
+    "README.md",
+    "README.ko.md"
   ],
   "scripts": {
     "build": "tsup",
