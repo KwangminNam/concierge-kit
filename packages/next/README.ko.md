@@ -75,7 +75,7 @@ relay 의 모든 메서드는 비동기입니다. Next 에서 현재 요청을 �
 둘을 자동으로 고르는 기능은 없습니다. 호출 지점을 감지하려면 Next 의 비공개 요청 저장소를 읽어야
 하는데, 메이저 버전마다 깨지고 깨졌을 때의 증상이 쿠키가 조용히 나타나지 않는 것입니다.
 
-## 렌더 중에 쿠키를 쓰는 경우
+## 지금 렌더가 볼 수 있는 쿠키 쓰기
 
 Next 는 React 서버 컴포넌트 렌더 중의 `cookies().set()` 을 설계상 거부합니다. `apply` 는
 크래시 대신 그 사실을 보고합니다.
@@ -85,9 +85,29 @@ const result = await relay.apply(upstream);
 // { relayed: [], dropped: [{ name: 'access_token', reason: 'unappliable' }] }
 ```
 
-`onUnappliable` 로 `'warn'`, `'throw'`, `'ignore'` 중에서 고릅니다. 같은 렌더가 볼 수 있는
-쿠키가 필요하다면 어떤 호출 지점도 그것을 줄 수 없습니다. 그것은 미들웨어의 일이고, 별도
-어댑터로 로드맵에 있습니다.
+`onUnappliable` 로 `'warn'`, `'throw'`, `'ignore'` 중에서 고릅니다.
+
+지금 렌더가 볼 수 있는 쿠키가 정말로 필요하다면, 어떤 호출 지점도 그것을 줄 수 없습니다.
+라우트 핸들러가 쓰는 쿠키는 **다음** 요청의 것이고, 렌더는 아무것도 쓰지 못합니다. 줄 수 있는
+계층은 프록시입니다. 요청이 도착한 뒤 렌더가 시작되기 전에 돌기 때문입니다.
+
+```ts
+// proxy.ts
+export const proxy = relay.proxy({
+  endpoint: `${API}/auth/refresh`,
+  when: (request) => !request.cookies.has('access_token') && request.cookies.has('refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+양쪽을 동시에 씁니다. 브라우저를 위해 응답에 `Set-Cookie` 를 싣고, 이번 렌더가 회전된 토큰을
+읽도록 요청의 `cookie` 헤더를 다시 씁니다. 한쪽만 하면 반대 방향으로 조용히 실패합니다.
+
+직접 흐름을 짤 때는 `rotateFromUpstream(relay, request, upstream)` 이 양쪽 쓰기를 해 주고,
+`clearSession(request, names)` 이 브라우저와 진행 중인 요청의 세션을 한꺼번에 끝냅니다.
+
+Next 15 는 `middleware.ts` 를 기본적으로 Edge 에서, Next 16 은 `proxy.ts` 를 Node 에서
+실행합니다. 코어는 어느 쪽이든 Edge 안전합니다.
 
 ## Next 를 건드리는 파일은 하나뿐
 

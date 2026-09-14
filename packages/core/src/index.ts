@@ -12,12 +12,13 @@ export { createRelay, type Relay, type RelayCookieNames } from './createRelay.js
 export { domainMatches, normalizeHost, resolveRelayContext, type RelayContext } from './context.js';
 
 export { forwardRequestCookies, parseCookieHeader } from './cookie/forwardRequestCookies.js';
-export { matchCookie } from './cookie/matchCookie.js';
+export { literalCookieNames, matchCookie } from './cookie/matchCookie.js';
 export {
   pipeSetCookies,
   relaySetCookies,
   type OutgoingSetCookie,
 } from './cookie/relaySetCookies.js';
+export { mergeIntoCookieHeader, removeFromCookieHeader } from './cookie/mergeIntoCookieHeader.js';
 export { rewriteSetCookie } from './cookie/rewriteSetCookie.js';
 export {
   findAttribute,

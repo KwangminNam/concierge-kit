@@ -10,6 +10,14 @@
 export { createRelay, type NextRelay } from './createRelay.js';
 export { applyToCookieStore, UnappliableCookieError, type ApplyOptions } from './apply.js';
 export { forwardFromRequest } from './forward.js';
+export {
+  clearSession,
+  createProxy,
+  rotateFromUpstream,
+  type ProxyOptions,
+  type RotateOptions,
+  type RotateResult,
+} from './proxy.js';
 export { toNextResponse, type RespondOptions } from './respond.js';
 export {
   createPassthroughRoute,

@@ -189,6 +189,48 @@ export const POST = withRelay(relay, async (request, { forward, relayFrom }) => 
 });
 ```
 
+## The one thing only a proxy can do
+
+A route handler writes a cookie the browser sends back on the _next_ request. A server action has
+no response object. A server component render cannot write a cookie at all. So when a token
+expires mid-navigation, no call site can both refresh it and let the render that needed it see
+the new one.
+
+A proxy can, because it is the only layer that sits between the request arriving and the render
+starting:
+
+```ts
+// proxy.ts
+import { relay } from '@/lib/relay';
+
+export const proxy = relay.proxy({
+  endpoint: `${API}/auth/refresh`,
+  when: (request) => !request.cookies.has('access_token') && request.cookies.has('refresh_token'),
+  onFailure: 'clear',
+});
+
+export const config = { matcher: ['/((?!_next|favicon.ico).*)'] };
+```
+
+The response carries `Set-Cookie` for the browser, and the incoming `cookie` header is rewritten
+at the same time, so the render that follows already reads the rotated token. The end-to-end
+suite asserts exactly that: a server component reads a value the browser has never sent.
+
+Writing this by hand is where it goes wrong, because doing half of it fails silently in opposite
+directions. Rewrite only the request and the browser never stores the cookie. Write only the
+response and this render keeps using the token the backend just rejected.
+
+`when` is required. A proxy with no condition calls your backend on every navigation, which is
+too expensive a default to arrive at by accident. `onFailure: 'clear'` expires the session for
+the browser and for the request in flight together, so the render does not continue with a token
+that has already been refused.
+
+For a flow of your own, `rotateFromUpstream(relay, request, upstream)` does the two-sided write
+and leaves the rest to you.
+
+This is also the answer to `onUnappliable`. If you need a cookie the current render can see, no
+call site can give you one; this is the layer that can.
+
 ## The policy
 
 Every key and default is defined in `packages/core/src/policy/types.ts`, which is the source this
@@ -361,8 +403,8 @@ Maturity is reported as test counts, not as check marks.
 | h3 / Nuxt adapter                   |                                                       |     0 | Absent           |
 | React server components             |                                                       |     0 | Absent           |
 
-Totals: 97 unit and type tests in the core, 33 integration tests in the Next adapter, 14 in the h3
-adapter, 6 for the documented runtime recipes, and 12 browser tests end to end.
+Totals: 111 unit and type tests in the core, 47 integration tests in the Next adapter, 14 in the
+h3 adapter, 6 for the documented runtime recipes, and 17 browser tests end to end.
 
 The end to end suite runs against `dev.example.test`, not `localhost`. Browsers treat `localhost`
 as a secure context, so they store a `Secure` cookie over plain http and never show a `Domain`
@@ -373,11 +415,10 @@ cases running a deliberately naive relay, and they assert the browser throws the
 
 Request header propagation and correlation ids, response header filtering beyond hop-by-hop,
 internal versus public base URLs, redirect path normalisation, timeouts and retries, error
-normalisation, structured logging, and a middleware adapter. Each has a place in the existing
+normalisation and structured logging. Each has a place in the existing
 structure; see `docs/design-memo.md` for where each one lands.
 
-The next one is a middleware adapter, which is the only way to set a cookie that the same render
-can see.
+The next one is an h3 proxy, so Nuxt gets the same two-sided rotation through nitro.
 
 ## Packages
 

@@ -188,6 +188,45 @@ export const POST = withRelay(relay, async (request, { forward, relayFrom }) => 
 });
 ```
 
+## 프록시만 할 수 있는 한 가지
+
+라우트 핸들러가 쓰는 쿠키는 브라우저가 **다음** 요청에 실어 보냅니다. 서버 액션에는 응답 객체가
+없습니다. 서버 컴포넌트 렌더는 쿠키를 아예 쓸 수 없습니다. 그래서 화면을 그리는 도중 토큰이
+만료되면, 어떤 호출 지점도 토큰을 갱신하면서 그 갱신을 필요로 한 렌더에 보여줄 수 없습니다.
+
+프록시는 할 수 있습니다. 요청이 도착한 뒤 렌더가 시작되기 전에 있는 유일한 계층이기 때문입니다.
+
+```ts
+// proxy.ts
+import { relay } from '@/lib/relay';
+
+export const proxy = relay.proxy({
+  endpoint: `${API}/auth/refresh`,
+  when: (request) => !request.cookies.has('access_token') && request.cookies.has('refresh_token'),
+  onFailure: 'clear',
+});
+
+export const config = { matcher: ['/((?!_next|favicon.ico).*)'] };
+```
+
+응답은 브라우저용 `Set-Cookie` 를 싣고, 동시에 들어오는 `cookie` 헤더가 다시 쓰입니다. 그래서
+뒤따르는 렌더가 이미 회전된 토큰을 읽습니다. e2e 스위트가 정확히 그것을 검증합니다. 서버
+컴포넌트가 브라우저는 보낸 적 없는 값을 읽습니다.
+
+손으로 쓰면 여기서 틀립니다. 둘 중 하나만 하면 반대 방향으로 조용히 실패하기 때문입니다. 요청만
+다시 쓰면 브라우저에 쿠키가 저장되지 않습니다. 응답만 쓰면 이번 렌더는 백엔드가 방금 거부한
+토큰을 계속 씁니다.
+
+`when` 은 필수입니다. 조건이 없는 프록시는 모든 화면 이동마다 백엔드를 호출합니다. 실수로 도달할
+기본값치고는 너무 비쌉니다. `onFailure: 'clear'` 는 브라우저와 진행 중인 요청의 세션을 한꺼번에
+끝냅니다. 이미 거부된 토큰으로 렌더가 계속되지 않게 하기 위해서입니다.
+
+직접 흐름을 짜고 싶으면 `rotateFromUpstream(relay, request, upstream)` 이 양쪽 쓰기만 해 주고
+나머지는 맡깁니다.
+
+이것이 `onUnappliable` 에 대한 답이기도 합니다. 지금 렌더가 볼 수 있는 쿠키가 필요하다면 어떤
+호출 지점도 그것을 줄 수 없고, 줄 수 있는 계층이 바로 여기입니다.
+
 ## 정책
 
 모든 키와 기본값은 `packages/core/src/policy/types.ts` 에 정의돼 있고, 이 절은 그 파일을 근거로
@@ -361,8 +400,8 @@ SvelteKit, Hono, Cloudflare Workers, Deno 는 어댑터가 아예 필요 없습�
 | h3 / Nuxt 어댑터                    |                                         |      0 | 없음                   |
 | React 서버 컴포넌트                 |                                         |      0 | 없음                   |
 
-합계는 코어 단위·타입 테스트 97개, Next 어댑터 통합 테스트 33개, h3 어댑터 14개,
-문서화된 런타임 레시피 6개, 브라우저 e2e 12개입니다.
+합계는 코어 단위·타입 테스트 111개, Next 어댑터 통합 테스트 47개, h3 어댑터 14개,
+문서화된 런타임 레시피 6개, 브라우저 e2e 17개입니다.
 
 e2e 는 `localhost` 가 아니라 `dev.example.test` 에서 돕니다. 브라우저는 `localhost` 를
 secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저장하고 `Domain` 불일치도
@@ -372,10 +411,10 @@ secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저�
 ## 이번 릴리스에 없는 것
 
 요청 헤더 전파와 상관 ID, hop-by-hop 을 넘어서는 응답 헤더 필터, 내부와 외부 base URL,
-리다이렉트 경로 정규화, 타임아웃과 재시도, 에러 정규화, 구조화 로깅, 그리고 미들웨어 어댑터.
+리다이렉트 경로 정규화, 타임아웃과 재시도, 에러 정규화와 구조화 로깅.
 각각이 현재 구조의 어디에 들어가는지는 `docs/design-memo.md` 에 적어 두었습니다.
 
-다음은 미들웨어 어댑터입니다. 같은 렌더가 볼 수 있는 쿠키를 설정하는 유일한 방법입니다.
+다음은 h3 프록시입니다. nitro 를 통해 Nuxt 에도 같은 양방향 회전을 줍니다.
 
 ## 패키지
 

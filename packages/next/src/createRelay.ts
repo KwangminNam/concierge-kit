@@ -5,8 +5,10 @@ import {
   type RelayOptions,
   type RelayResult,
 } from '@concierge-kit/core';
+import type { NextRequest, NextResponse } from 'next/server';
 import { applyToCookieStore, type ApplyOptions } from './apply.js';
 import { forwardFromRequest } from './forward.js';
+import { createProxy, type ProxyOptions } from './proxy.js';
 import {
   createPassthroughRoute,
   type RouteHandler,
@@ -35,6 +37,11 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
   apply(upstream: Response, options?: ApplyOptions): Promise<RelayResult<RelayCookieNames<O>>>;
   /** Builds a passthrough route handler for this target. */
   route(target: RouteTarget, options?: RouteOptions): RouteHandler;
+  /**
+   * Builds a proxy that refreshes a session and hands the result to the request that needed it.
+   * The only place a cookie can reach the render happening right now.
+   */
+  proxy(options: ProxyOptions): (request: NextRequest) => Promise<NextResponse>;
 }
 
 /**
@@ -68,5 +75,6 @@ export function createRelay<const O extends RelayOptions>(options?: O): NextRela
     apply: (upstream, applyOptions) =>
       applyToCookieStore(upstream, core, applyOptions) as Promise<RelayResult<RelayCookieNames<O>>>,
     route: (target, routeOptions) => createPassthroughRoute(core, target, routeOptions),
+    proxy: (proxyOptions) => createProxy(core, proxyOptions),
   };
 }

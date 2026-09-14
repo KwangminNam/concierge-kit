@@ -52,3 +52,14 @@ export async function readCookieStore(): Promise<WritableCookieStore> {
 export function createResponse(body: BodyInit | null, init: ResponseInit): Response {
   return new NextResponse(body, init);
 }
+
+/**
+ * Lets the request continue, optionally with request headers the rest of the request will see.
+ *
+ * Rewriting the incoming headers here is the whole reason a proxy can do something no route
+ * handler or server action can: the render that follows reads what this says, not what the
+ * browser sent.
+ */
+export function continueRequest(headers?: Headers): NextResponse {
+  return headers === undefined ? NextResponse.next() : NextResponse.next({ request: { headers } });
+}

@@ -76,7 +76,7 @@ There is no automatic choice between them. Detecting the call site would mean re
 private request store, which breaks between majors, and the symptom when it breaks is a cookie
 quietly failing to appear.
 
-## Writing a cookie during a render
+## Writing a cookie the current render can see
 
 Next refuses `cookies().set()` during a React Server Component render, by design. `apply` reports
 it rather than crashing:
@@ -86,9 +86,31 @@ const result = await relay.apply(upstream);
 // { relayed: [], dropped: [{ name: 'access_token', reason: 'unappliable' }] }
 ```
 
-`onUnappliable` chooses between `'warn'`, `'throw'` and `'ignore'`. If you need a cookie that the
-same render can see, no call site can give you one: that belongs in middleware, which is on the
-roadmap as its own adapter.
+`onUnappliable` chooses between `'warn'`, `'throw'` and `'ignore'`.
+
+If you actually need a cookie the current render can see, no call site can give you one. A route
+handler writes a cookie for the _next_ request; a render writes none. The proxy is the layer that
+can, because it runs after the request arrives and before the render starts:
+
+```ts
+// proxy.ts
+export const proxy = relay.proxy({
+  endpoint: `${API}/auth/refresh`,
+  when: (request) => !request.cookies.has('access_token') && request.cookies.has('refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+It writes both sides at once: `Set-Cookie` on the response for the browser, and a rewritten
+`cookie` header on the request so this render reads the rotated token. Doing only one half fails
+silently, in opposite directions.
+
+`rotateFromUpstream(relay, request, upstream)` does the two-sided write for a flow of your own,
+and `clearSession(request, names)` ends a session for the browser and the request in flight at
+once.
+
+Next 15 runs `middleware.ts` on Edge by default; Next 16 runs `proxy.ts` on Node. The core is
+Edge safe either way.
 
 ## One file touches Next
 
