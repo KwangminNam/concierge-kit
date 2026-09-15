@@ -112,6 +112,21 @@ once.
 Next 15 runs `middleware.ts` on Edge by default; Next 16 runs `proxy.ts` on Node. The core is
 Edge safe either way.
 
+## One time budget per request
+
+```ts
+export const relay = createRelay({ /* ... */ deadline: { budget: 3000 } });
+```
+
+`relay.proxy()` stamps the budget where the request enters. Every `relay.forward()` in that
+request then carries what is left: an `AbortSignal` and an `x-request-deadline` header for the
+backend. `relay.deadline()` returns the remaining budget and the signal for a call site that
+wants them directly. For a proxy of your own, `stampRequest(relay, request)` does the stamp
+alone.
+
+The budget crosses from proxy to render as a header, not through an async context: in Next.js
+those are separate contexts and a value set in one is invisible in the other.
+
 ## One file touches Next
 
 Every Next.js API this package uses lives in `src/framework.ts`. A breaking change in Next lands

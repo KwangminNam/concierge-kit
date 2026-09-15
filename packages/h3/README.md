@@ -70,6 +70,17 @@ them from `getRequestProtocol` and `getRequestHost`, which consult `x-forwarded-
 even when the browser used https, and trusting it would strip `Secure` from every cookie in
 production.
 
+## One time budget per request
+
+```ts
+export const relay = createRelay({ /* ... */ deadline: { budget: 3000 } });
+```
+
+The clock starts on the first `relay.forward(event)` in a request, or earlier from a nitro
+`request` hook with `relay.stamp(event)`, and lives on `event.context`. Every later call in the
+same request carries what is left as an `AbortSignal` and an `x-request-deadline` header.
+`relay.deadline(event)` returns the remaining budget and the signal directly.
+
 ## One file touches h3
 
 Every h3 API this package uses lives in `src/framework.ts`. When h3 v2 lands and moves to web

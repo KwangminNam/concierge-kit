@@ -49,16 +49,17 @@ afterAll(() => {
 });
 
 describe('the Nuxt and h3 recipe', () => {
-  it('fixes the attributes that would make a browser discard the cookie', async () => {
+  it('strips only the Domain a loopback host cannot match', async () => {
     const response = await fetch(`${origin}/api/login`, {
       headers: { cookie: 'access_token=from-browser; theme=dark' },
     });
     const [cookie] = response.headers.getSetCookie();
 
-    expect(cookie).toBe('access_token=granted; Path=/; SameSite=Lax; Partitioned; HttpOnly');
+    // 127.0.0.1 is a secure context, so Secure stays and Partitioned stays valid with it.
+    expect(cookie).toBe(
+      'access_token=granted; Path=/; Secure; SameSite=None; Partitioned; HttpOnly',
+    );
     expect(cookie).not.toContain('Domain');
-    expect(cookie).not.toContain('Secure');
-    expect(cookie).toContain('Partitioned');
   });
 
   it('relays nothing outside the allow list', async () => {

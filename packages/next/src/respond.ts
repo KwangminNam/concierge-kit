@@ -2,12 +2,14 @@ import {
   resolveRelayContext,
   type Relay,
   type RelayContext,
+  type RelayCookieNames,
+  type RelayOptions,
   type RelayResult,
 } from '@concierge-kit/core';
 import { createResponse, readRequestHeaders } from './framework.js';
 
 /** Options for {@link toNextResponse}. */
-export interface RespondOptions {
+export interface RespondOptions<N extends string = string> {
   /** Request information for the `'auto'` rules. Resolved from the current request when absent. */
   readonly context?: RelayContext;
   /** The incoming request, used to derive the context when one is not supplied directly. */
@@ -17,7 +19,7 @@ export interface RespondOptions {
   /** Extra headers set on the outgoing response, after the upstream ones are copied. */
   readonly headers?: HeadersInit;
   /** Receives what was relayed and what was dropped. Names and reasons only, never values. */
-  readonly onRelay?: (result: RelayResult) => void;
+  readonly onRelay?: (result: RelayResult<N>) => void;
 }
 
 /**
@@ -41,10 +43,10 @@ export interface RespondOptions {
  *
  * @see https://concierge-kit.dev/guides/route-handlers
  */
-export async function toNextResponse(
+export async function toNextResponse<O extends RelayOptions>(
   upstream: Response,
-  relay: Relay,
-  options?: RespondOptions,
+  relay: Relay<O>,
+  options?: RespondOptions<RelayCookieNames<O>>,
 ): Promise<Response> {
   const headers = relay.prepareHeaders(upstream.headers);
   if (options?.headers !== undefined) {

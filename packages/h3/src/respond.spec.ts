@@ -93,13 +93,26 @@ describe('respond', () => {
     expect(await response.text()).toBe('{"ok":true}');
   });
 
-  it('judges the auto rules against the host the browser actually used', async () => {
+  it('keeps Secure on a loopback host, which the browser treats as a secure context', async () => {
     const backend = await backendSending({
       'set-cookie': ['access_token=a; Domain=.example.com; Secure; SameSite=None; Partitioned'],
     });
     const response = await fetch(`${(await frontFor(backend)).origin}/api/login`);
 
-    expect(response.headers.getSetCookie()).toEqual(['access_token=a; SameSite=Lax; Partitioned']);
+    expect(response.headers.getSetCookie()).toEqual([
+      'access_token=a; Secure; SameSite=None; Partitioned',
+    ]);
+  });
+
+  it('judges the auto rules against the host the browser actually used', async () => {
+    const backend = await backendSending({
+      'set-cookie': ['access_token=a; Domain=.example.com; Secure; SameSite=None; Partitioned'],
+    });
+    const response = await fetch(`${(await frontFor(backend)).origin}/api/login`, {
+      headers: { 'x-forwarded-host': 'dev.example.test', 'x-forwarded-proto': 'http' },
+    });
+
+    expect(response.headers.getSetCookie()).toEqual(['access_token=a; SameSite=Lax']);
   });
 
   it('keeps Secure when a proxy says the browser used https', async () => {

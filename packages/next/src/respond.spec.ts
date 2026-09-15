@@ -47,7 +47,7 @@ describe('toNextResponse', () => {
 
   it('rewrites for the current request read from the ambient headers', async () => {
     state.requestHeaders = new Headers({
-      host: 'localhost:3000',
+      host: 'dev.example.test:3000',
       'x-forwarded-proto': 'http',
     });
     const upstream = upstreamWith(['access_token=a; Domain=.example.com; Secure; SameSite=None']);
@@ -57,7 +57,7 @@ describe('toNextResponse', () => {
   });
 
   it('prefers an explicit request over the ambient one', async () => {
-    state.requestHeaders = new Headers({ host: 'localhost:3000' });
+    state.requestHeaders = new Headers({ host: 'dev.example.test:3000' });
     const response = await toNextResponse(
       upstreamWith(['access_token=a; Domain=.example.com']),
       relay,

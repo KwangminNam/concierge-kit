@@ -91,7 +91,7 @@ describe('a client that is not fetch', () => {
     const to = new Headers();
     const result = relaySetCookies(toHeaders(setCookie), to, policy, context);
 
-    expect(to.getSetCookie()).toEqual(['access_token=granted; Path=/; SameSite=Lax; Partitioned']);
+    expect(to.getSetCookie()).toEqual(['access_token=granted; Path=/; SameSite=Lax']);
     expect(result.dropped).toEqual([{ name: 'internal_trace', reason: 'not-allowed' }]);
   });
 

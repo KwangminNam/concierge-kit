@@ -22,6 +22,12 @@ export function validateRelayOptions(
   if (options.cookie !== undefined) assertKnownKeys('cookie policy', options.cookie, COOKIE_KEYS);
   if (options.forward !== undefined)
     assertKnownKeys('forward policy', options.forward, FORWARD_KEYS);
+  if (options.deadline !== undefined) {
+    assertKnownKeys('deadline policy', options.deadline, DEADLINE_KEYS);
+    if (!(Number.isFinite(options.deadline.budget) && options.deadline.budget > 0)) {
+      throw new Error('[concierge-kit] deadline.budget must be a positive number of milliseconds.');
+    }
+  }
 
   const cookie = options.cookie;
   const logger = options.logger;
@@ -74,7 +80,8 @@ export function validateRelayOptions(
   }
 }
 
-const TOP_LEVEL_KEYS = ['cookie', 'forward', 'onUnappliable', 'logger'] as const;
+const TOP_LEVEL_KEYS = ['cookie', 'forward', 'deadline', 'onUnappliable', 'logger'] as const;
+const DEADLINE_KEYS = ['budget', 'header', 'carrier'] as const;
 const COOKIE_KEYS = [
   'allow',
   'domain',

@@ -1,7 +1,10 @@
 import type { RelayContext } from './context.js';
 import { forwardRequestCookies } from './cookie/forwardRequestCookies.js';
+import { readDeadline, viewDeadline, type DeadlineView } from './deadline/deadline.js';
+import { forwardRequest } from './forwardRequest.js';
 import { relaySetCookies } from './cookie/relaySetCookies.js';
 import { prepareResponseHeaders } from './headers/hopByHop.js';
+import type { StrictRelayOptions } from './policy/strict.js';
 import { validateRelayOptions } from './policy/validate.js';
 import type { RelayOptions, RelayResult, RelayedNames } from './policy/types.js';
 
@@ -35,6 +38,17 @@ export interface Relay<O extends RelayOptions = RelayOptions> {
    */
   forwardCookies(from: Request | Headers, init?: RequestInit): RequestInit;
   /**
+   * Builds the `RequestInit` for a backend call, applying every configured forward rule:
+   * cookies, and what is left of the request's time budget.
+   * @see https://concierge-kit.dev/reference/forward
+   */
+  forwardRequest(from: Request | Headers, init?: RequestInit): RequestInit;
+  /**
+   * What is left of this request's time budget, or `undefined` when none was stamped.
+   * @see https://concierge-kit.dev/reference/deadline
+   */
+  deadlineOf(from: Request | Headers): DeadlineView | undefined;
+  /**
    * The upstream response headers that are safe to copy to the browser.
    * @see https://concierge-kit.dev/reference/headers#prepareresponseheaders
    */
@@ -58,7 +72,9 @@ export interface Relay<O extends RelayOptions = RelayOptions> {
  *
  * @see https://concierge-kit.dev/reference/create-relay
  */
-export function createRelay<const O extends RelayOptions>(options?: O): Relay<O> {
+export function createRelay<const O extends RelayOptions>(
+  options?: StrictRelayOptions<O>,
+): Relay<O> {
   const resolved = (options ?? {}) as O;
   validateRelayOptions(resolved);
 
@@ -69,6 +85,14 @@ export function createRelay<const O extends RelayOptions>(options?: O): Relay<O>
     },
     forwardCookies(from, init) {
       return forwardRequestCookies(from, init, resolved.forward);
+    },
+    forwardRequest(from, init) {
+      return forwardRequest(from, init, resolved);
+    },
+    deadlineOf(from) {
+      if (resolved.deadline === undefined) return undefined;
+      const deadline = readDeadline(from, resolved.deadline);
+      return deadline === undefined ? undefined : viewDeadline(deadline);
     },
     prepareHeaders(from) {
       return prepareResponseHeaders(from);

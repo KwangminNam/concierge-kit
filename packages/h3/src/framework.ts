@@ -9,7 +9,12 @@ import {
   type EventHandler,
   type H3Event,
 } from 'h3';
-import type { RelayContext } from '@concierge-kit/core';
+import {
+  stampDeadline,
+  DEADLINE_DEFAULTS,
+  type DeadlinePolicy,
+  type RelayContext,
+} from '@concierge-kit/core';
 
 /**
  * The one and only place in this package that touches an h3 API.
@@ -32,7 +37,10 @@ export function toRequest(event: H3Event): Request {
  * package needs: behind a proxy the socket is plain http even when the browser used https.
  */
 export function toContext(event: H3Event): RelayContext {
-  return { proto: getRequestProtocol(event), host: getRequestHost(event) };
+  return {
+    proto: getRequestProtocol(event, { xForwardedProto: true }),
+    host: getRequestHost(event, { xForwardedHost: true }),
+  };
 }
 
 /**
@@ -58,4 +66,29 @@ export function requestUrl(event: H3Event): URL {
 /** Wraps a function as an h3 handler. */
 export function toEventHandler(handler: (event: H3Event) => Promise<unknown>): EventHandler {
   return defineEventHandler(handler);
+}
+
+const DEADLINE_KEY = 'conciergeKitDeadlineAt';
+
+/**
+ * The request headers with this request's time budget stamped on.
+ *
+ * h3 has a real per-request scope, `event.context`, so the clock starts the first time anyone
+ * asks and every later call in the same request reads the same deadline. A carrier header
+ * arriving from outside is ignored: a budget this server did not set is not one it honours.
+ */
+export function stampedRequestHeaders(
+  event: H3Event,
+  policy: DeadlinePolicy,
+  now: number = Date.now(),
+): Headers {
+  const headers = new Headers(toWebRequest(event).headers);
+  const carrier = policy.carrier ?? DEADLINE_DEFAULTS.carrier;
+  const existing = event.context[DEADLINE_KEY];
+  if (typeof existing === 'number') {
+    headers.set(carrier, String(existing));
+  } else {
+    event.context[DEADLINE_KEY] = stampDeadline(headers, policy, now).at;
+  }
+  return headers;
 }

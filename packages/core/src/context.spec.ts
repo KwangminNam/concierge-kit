@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { domainMatches, normalizeHost, resolveRelayContext } from './context.js';
+import { domainMatches, isLoopbackHost, normalizeHost, resolveRelayContext } from './context.js';
 
 describe('resolveRelayContext', () => {
   it('trusts the forwarded proto over the request url', () => {
@@ -54,5 +54,26 @@ describe('normalizeHost', () => {
 
   it('keeps a bracketed ipv6 literal whole', () => {
     expect(normalizeHost('[::1]:3000')).toBe('[::1]');
+  });
+});
+
+describe('isLoopbackHost', () => {
+  it('recognises every form browsers grant a secure context to', () => {
+    for (const host of [
+      'localhost',
+      'localhost:3000',
+      'api.localhost',
+      '127.0.0.1',
+      '127.1.2.3:80',
+      '[::1]:3000',
+    ]) {
+      expect(isLoopbackHost(host)).toBe(true);
+    }
+  });
+
+  it('rejects everything else, including hosts that merely resolve to loopback', () => {
+    for (const host of ['dev.example.test', '128.0.0.1', 'localhost.example.com', '0.0.0.0']) {
+      expect(isLoopbackHost(host)).toBe(false);
+    }
   });
 });

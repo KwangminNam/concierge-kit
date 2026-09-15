@@ -14,4 +14,4 @@ export const proxy = relay.proxy({
   onFailure: 'clear',
 });
 
-export const config = { matcher: ['/session'] };
+export const config = { matcher: ['/session', '/deadline'] };

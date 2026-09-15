@@ -150,6 +150,32 @@ export interface ForwardPolicy<
 }
 
 /**
+ * A time budget for one request, shared by every backend call made while serving it.
+ *
+ * The budget is stamped once, where the request enters (a proxy in Next.js, the first call in
+ * h3), and travels between the phases of the same request as a header. Each backend call then
+ * receives what is left, both as an `AbortSignal` and as a header the backend can honour.
+ *
+ * @see https://concierge-kit.dev/reference/deadline
+ */
+export interface DeadlinePolicy {
+  /** Total budget for one request, in milliseconds. */
+  readonly budget: number;
+  /**
+   * Header that tells the backend how many milliseconds are left. Relative, like `grpc-timeout`,
+   * because the two machines do not share a clock.
+   * @defaultValue `'x-request-deadline'`
+   */
+  readonly header?: string;
+  /**
+   * Header that carries the absolute deadline between the phases of one request on this server.
+   * Never sent to the backend.
+   * @defaultValue `'x-concierge-deadline'`
+   */
+  readonly carrier?: string;
+}
+
+/**
  * What to do when the adapter cannot write a cookie at all, which in Next.js means
  * `cookies().set()` was reached during a React Server Component render.
  *
@@ -199,6 +225,8 @@ export interface RelayOptions<
   readonly cookie?: CookieRelayPolicy<A>;
   /** Browser to backend. */
   readonly forward?: ForwardPolicy<C>;
+  /** A time budget shared by every backend call made while serving one request. */
+  readonly deadline?: DeadlinePolicy;
   /** @defaultValue `'warn'` */
   readonly onUnappliable?: UnappliableMode;
   /** @defaultValue the global `console` */

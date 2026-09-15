@@ -9,6 +9,19 @@
  */
 
 export { createRelay, type Relay, type RelayCookieNames } from './createRelay.js';
+export { forwardRequest, type ForwardRules } from './forwardRequest.js';
+export { defineRelayOptions, type StrictKeys, type StrictRelayOptions } from './policy/strict.js';
+export {
+  DEADLINE_DEFAULTS,
+  deadlineSignal,
+  forwardDeadline,
+  readDeadline,
+  remainingMs,
+  stampDeadline,
+  viewDeadline,
+  type Deadline,
+  type DeadlineView,
+} from './deadline/deadline.js';
 export { domainMatches, normalizeHost, resolveRelayContext, type RelayContext } from './context.js';
 
 export { forwardRequestCookies, parseCookieHeader } from './cookie/forwardRequestCookies.js';
@@ -47,6 +60,7 @@ export type {
   CookieMatcher,
   CookieMatcherInput,
   CookieRelayPolicy,
+  DeadlinePolicy,
   DomainRule,
   DropReason,
   ForwardPolicy,

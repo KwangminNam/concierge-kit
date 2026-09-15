@@ -82,3 +82,16 @@ export function domainMatches(host: string, domain: string): boolean {
   if (h === '' || d === '') return false;
   return h === d || h.endsWith(`.${d}`);
 }
+
+/**
+ * Whether browsers treat this host as a secure context even over plain http.
+ *
+ * `localhost`, any `*.localhost`, the whole `127.0.0.0/8` block and `[::1]` all qualify, so a
+ * `Secure` cookie set there is stored. Stripping `Secure` on these hosts would not help and
+ * would break every cookie that requires it, such as `Partitioned` and `__Host-` ones.
+ */
+export function isLoopbackHost(host: string): boolean {
+  const h = normalizeHost(host);
+  if (h === 'localhost' || h.endsWith('.localhost') || h === '[::1]') return true;
+  return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
+}

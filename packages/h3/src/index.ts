@@ -9,20 +9,35 @@
 
 export { createRelay, type H3Relay } from './createRelay.js';
 export { applyToEvent, type ApplyOptions } from './apply.js';
-export { forwardFromEvent } from './forward.js';
+export { forwardFromEvent, stampEvent } from './forward.js';
 export { respondWithUpstream, type RespondOptions } from './respond.js';
 export { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 export { toContext, toRequest } from './framework.js';
 
+export { defineRelayOptions } from '@concierge-kit/core';
 export type {
   CookieInfo,
   CookieMatcher,
   CookieMatcherInput,
   CookieRelayPolicy,
+  DeadlinePolicy,
+  DeadlineView,
+  DomainRule,
   DropReason,
   ForwardPolicy,
+  NamesOf,
+  PathRule,
+  Relay,
   RelayContext,
+  RelayCookieNames,
+  RelayedNames,
+  RelayLogger,
   RelayOptions,
   RelayResult,
+  RenameRules,
+  SameSiteRule,
+  SecureRule,
   SetCookieInfo,
+  StrictRelayOptions,
+  UnappliableMode,
 } from '@concierge-kit/core';

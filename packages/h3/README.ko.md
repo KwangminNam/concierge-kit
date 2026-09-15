@@ -69,6 +69,17 @@ export default relay.route(`${API}/login`);
 브라우저가 https 를 썼어도 소켓은 평문 http 이고, 소켓을 믿으면 프로덕션의 모든 쿠키에서
 `Secure` 가 벗겨집니다.
 
+## 요청당 시간 예산 하나
+
+```ts
+export const relay = createRelay({ /* ... */ deadline: { budget: 3000 } });
+```
+
+시계는 요청의 첫 `relay.forward(event)` 에서, 또는 nitro `request` 훅에서 `relay.stamp(event)`
+로 더 일찍 시작되며 `event.context` 에 삽니다. 같은 요청의 이후 호출은 남은 것을 `AbortSignal`
+과 `x-request-deadline` 헤더로 실어 갑니다. `relay.deadline(event)` 은 남은 예산과 신호를
+직접 돌려줍니다.
+
 ## h3 를 건드리는 파일은 하나뿐
 
 이 패키지가 쓰는 모든 h3 API 는 `src/framework.ts` 에 있습니다. h3 v2 가 나와 웹 표준으로
