@@ -227,6 +227,31 @@ export const config = { matcher: ['/((?!_next|favicon.ico).*)'] };
 이것이 `onUnappliable` 에 대한 답이기도 합니다. 지금 렌더가 볼 수 있는 쿠키가 필요하다면 어떤
 호출 지점도 그것을 줄 수 없고, 줄 수 있는 계층이 바로 여기입니다.
 
+## 요청 헤더와 상관 ID
+
+흔한 버그는 `request.headers` 를 통째로 넘기는 것입니다. `host` 는 호출을 자기 서버로 되돌리고,
+`content-length` 는 다시 인코딩된 본문에 대해 거짓말을 하며, `connection` 은 다음 홉에서 의미가
+없습니다. 그래서 헤더는 allow 목록이고, 무엇을 허용하든 거부 목록이 지킵니다.
+
+```ts
+forward: {
+  cookies: ['access_token'],
+  headers: ['accept-language', /^x-trace-/],
+  requestId: { header: 'x-request-id' },
+}
+```
+
+`headers` 는 `allow` 와 같은 matcher 형태를 받습니다. hop-by-hop 헤더, `host`, `content-length`,
+`cookie` 는 matcher 가 뭐라 하든 절대 넘어가지 않습니다.
+
+`requestId` 는 브라우저가 보낸 ID 를 그대로 싣고, 없으면 하나 만들며, 그 요청의 모든 백엔드
+호출이 같은 값을 보냅니다. Next.js 에서는 프록시가 찍어 렌더가 읽고, 프록시가 없으면 첫
+`relay.forward()` 가 만들어 같은 핸들러의 이후 호출이 재사용합니다. h3 에서는 이벤트에 삽니다.
+헤더 이름은 여러분 것입니다. 표준이 아니라 백엔드와의 계약입니다.
+
+이것이 fetch 를 소유하지 않고 얻는 요청 단위 로깅입니다. 이 ID 로 로그를 남기면 브라우저, 이
+서버, 백엔드의 로그가 하나로 이어집니다.
+
 ## 요청 하나, 시간 예산 하나
 
 백엔드 호출에는 타임아웃이 있습니다. 요청에는 없습니다. 그래서 화면을 그리며 부르는 세 번째
@@ -412,6 +437,20 @@ React 서버 컴포넌트 규칙을 설명하는 옵션이고 Nuxt 에는 대응
 `forward` 와 `apply` 는 동기입니다. h3 가 요청을 바로 건네주기 때문입니다. 비동기인 것은 응답을
 보내는 `respond` 뿐입니다.
 
+프록시만 할 수 있는 렌더 중 회전은 h3 에서 미들웨어로 똑같이 됩니다.
+
+```ts
+// server/middleware/refresh.ts
+export default relay.refresh({
+  endpoint: `${API}/auth/refresh`,
+  when: (event) => !getCookie(event, 'access_token') && !!getCookie(event, 'refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+양쪽을 동시에 씁니다. 응답의 `Set-Cookie`, 그리고 요청 객체 위의 다시 쓰인 `cookie` 헤더입니다.
+그 뒤의 모든 핸들러와 Nuxt 의 `useRequestHeaders` 가 거기서 읽습니다.
+
 peer 는 `h3` 1.15 이상이고, Nuxt 4 가 nitropack 을 거쳐 쓰는 버전입니다. h3 v2 가 웹 표준으로
 옮겨가면 어댑터의 파일 하나만 바뀝니다.
 
@@ -460,11 +499,12 @@ secure context 로 취급하므로 평문 http 에서도 `Secure` 쿠키를 저�
 
 ## 이번 릴리스에 없는 것
 
-요청 헤더 전파와 상관 ID, hop-by-hop 을 넘어서는 응답 헤더 필터, 내부와 외부 base URL,
+hop-by-hop 을 넘어서는 응답 헤더 필터, 내부와 외부 base URL,
 리다이렉트 경로 정규화, 재시도, 에러 정규화와 구조화 로깅.
 각각이 현재 구조의 어디에 들어가는지는 `docs/design-memo.md` 에 적어 두었습니다.
 
-다음은 h3 프록시입니다. nitro 를 통해 Nuxt 에도 같은 양방향 회전을 줍니다.
+두 어댑터 모두 양방향 회전을 갖췄습니다. 다음 후보는 리다이렉트 경로 검증과 서버 액션 에러
+정규화입니다.
 
 ## 패키지
 

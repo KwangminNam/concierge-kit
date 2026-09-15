@@ -7,11 +7,7 @@ export type RouteTarget = string | URL | ((request: Request) => string | URL);
 /** Options for {@link createPassthroughRoute}. */
 export interface RouteOptions {
   /**
-   * Request header names copied to the backend call.
-   *
-   * Kept deliberately short in this release. General header propagation, including correlation
-   * ids and forwarded headers, is a separate feature rather than a silent default here.
-   *
+   * Request header names copied to the backend call, on top of what `forward.headers` allows.
    * @defaultValue `['content-type', 'accept']`
    */
   readonly headers?: readonly string[];

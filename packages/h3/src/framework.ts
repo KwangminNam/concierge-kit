@@ -10,10 +10,12 @@ import {
   type H3Event,
 } from 'h3';
 import {
-  stampDeadline,
   DEADLINE_DEFAULTS,
+  ensureRequestId,
+  stampDeadline,
   type DeadlinePolicy,
   type RelayContext,
+  type RequestIdPolicy,
 } from '@concierge-kit/core';
 
 /**
@@ -91,4 +93,34 @@ export function stampedRequestHeaders(
     event.context[DEADLINE_KEY] = stampDeadline(headers, policy, now).at;
   }
   return headers;
+}
+
+const REQUEST_ID_KEY = 'conciergeKitRequestId';
+
+/**
+ * The correlation id for this request, minted once per event and written onto the incoming
+ * headers so every later reader in the same request, including `toWebRequest`, sees it.
+ */
+export function requestIdOf(event: H3Event, policy: RequestIdPolicy): string {
+  const existing = event.context[REQUEST_ID_KEY];
+  if (typeof existing === 'string') return existing;
+  const headers = new Headers(toWebRequest(event).headers);
+  const id = ensureRequestId(headers, policy);
+  event.context[REQUEST_ID_KEY] = id;
+  setIncomingHeader(event, policy.header, id);
+  return id;
+}
+
+/**
+ * Rewrites one incoming request header for everything that runs later in this request.
+ *
+ * h3 v1 reads headers from the Node request object, and every handler after this one,
+ * including Nuxt's `useRequestHeaders`, reads from the same object. This is the h3 counterpart
+ * of a Next.js proxy rewriting the request: the only way to hand the current request a value
+ * the browser never sent.
+ */
+export function setIncomingHeader(event: H3Event, name: string, value: string | null): void {
+  const key = name.toLowerCase();
+  if (value === null) delete event.node.req.headers[key];
+  else event.node.req.headers[key] = value;
 }

@@ -133,8 +133,29 @@ export interface CookieRelayPolicy<
   readonly legacyNames?: readonly string[];
 }
 
+/** Identity of one request header, for a matcher. Lowercased. */
+export interface HeaderInfo {
+  readonly name: string;
+}
+
+/** One allow condition for request headers; same shapes as a cookie matcher. */
+export type HeaderMatcherInput = CookieMatcherInput<HeaderInfo>;
+
 /**
- * How browser request cookies are forwarded to the backend.
+ * A correlation id that follows one request from the browser through this server to the
+ * backend, so three logs can be joined on one value.
+ *
+ * @see https://concierge-kit.dev/reference/forward#requestid
+ */
+export interface RequestIdPolicy {
+  /** Header name, as your backend expects it. Injected, never assumed. */
+  readonly header: string;
+  /** Makes an id when the browser did not send one. @defaultValue `crypto.randomUUID` */
+  readonly generate?: () => string;
+}
+
+/**
+ * How browser request cookies and headers are forwarded to the backend.
  *
  * @see https://concierge-kit.dev/reference/policy#forwardpolicy
  */
@@ -143,6 +164,16 @@ export interface ForwardPolicy<
 > {
   /** Which browser cookies may reach the backend. Omitted means none. */
   readonly cookies?: C;
+  /**
+   * Which request headers may reach the backend. Omitted means none.
+   *
+   * Hop-by-hop headers, `host`, `content-length`, `cookie` and this package's own carriers are
+   * never forwarded, whatever the matcher says: each one breaks the backend call in its own way.
+   * Cookies travel through `cookies`, where the allow list applies.
+   */
+  readonly headers?: HeaderMatcherInput;
+  /** A correlation id carried through, or minted here when the browser sent none. */
+  readonly requestId?: RequestIdPolicy;
   /** @see {@link RenameRules} */
   readonly rename?: RenameRules;
   /** Reserved, same contract as {@link CookieRelayPolicy.legacyNames}. */

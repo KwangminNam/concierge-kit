@@ -231,6 +231,32 @@ and leaves the rest to you.
 This is also the answer to `onUnappliable`. If you need a cookie the current render can see, no
 call site can give you one; this is the layer that can.
 
+## Request headers and a correlation id
+
+The usual bug is forwarding `request.headers` wholesale. `host` sends the call back to your own
+server, `content-length` lies about a re-encoded body, and `connection` has no meaning on the
+next hop. So headers are an allow list, and a deny list stands guard regardless:
+
+```ts
+forward: {
+  cookies: ['access_token'],
+  headers: ['accept-language', /^x-trace-/],
+  requestId: { header: 'x-request-id' },
+}
+```
+
+`headers` takes the same matcher shapes as `allow`. Hop-by-hop headers, `host`, `content-length`
+and `cookie` never go through, whatever the matcher says.
+
+`requestId` carries the id the browser sent, or mints one when there is none, and every backend
+call in that request sends the same one. In Next.js the proxy stamps it so the render reads it;
+without a proxy the first `relay.forward()` mints it and later calls in the same route handler or
+server action reuse it. In h3 it lives on the event. The header name is yours: it is a contract
+with your backend, not a standard.
+
+That is request-scoped logging without owning `fetch`: log with the id and your logs join across
+browser, this server and the backend.
+
 ## One request, one time budget
 
 A backend call has a timeout. A request does not. So the third call made while rendering a page
@@ -417,6 +443,20 @@ Nuxt.
 `forward` and `apply` are synchronous, because h3 hands you the request directly. Only `respond`
 awaits, since it sends.
 
+For the render-time rotation that only a proxy can do, h3 has the same thing as a middleware:
+
+```ts
+// server/middleware/refresh.ts
+export default relay.refresh({
+  endpoint: `${API}/auth/refresh`,
+  when: (event) => !getCookie(event, 'access_token') && !!getCookie(event, 'refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+It writes both sides at once: `Set-Cookie` on the response, and the rewritten `cookie` header on
+the request object, which every handler after it and Nuxt's `useRequestHeaders` read from.
+
 Peer is `h3` 1.15 or later, which is what Nuxt 4 ships through nitropack. When h3 v2 moves to web
 standards, one file in the adapter changes.
 
@@ -464,12 +504,12 @@ cases running a deliberately naive relay, and they assert the browser throws the
 
 ## Not in this release
 
-Request header propagation and correlation ids, response header filtering beyond hop-by-hop,
-internal versus public base URLs, redirect path normalisation, retries, error
+Response header filtering beyond hop-by-hop, internal versus public base URLs, redirect path normalisation, retries, error
 normalisation and structured logging. Each has a place in the existing
 structure; see `docs/design-memo.md` for where each one lands.
 
-The next one is an h3 proxy, so Nuxt gets the same two-sided rotation through nitro.
+Both adapters now have the two-sided rotation. The next candidates are redirect path checking and
+server action error normalisation.
 
 ## Packages
 

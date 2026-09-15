@@ -1,5 +1,6 @@
 import { forwardRequestCookies } from './cookie/forwardRequestCookies.js';
-import { forwardDeadline, readDeadline } from './deadline/deadline.js';
+import { DEADLINE_DEFAULTS, forwardDeadline, readDeadline } from './deadline/deadline.js';
+import { forwardRequestHeaders, forwardRequestId } from './headers/forwardRequestHeaders.js';
 import { devWarnOnce } from './internal/dev.js';
 import type { DeadlinePolicy, ForwardPolicy, RelayLogger } from './policy/types.js';
 
@@ -13,9 +14,8 @@ export interface ForwardRules {
 /**
  * Builds the `RequestInit` for a backend call, applying every configured forward rule.
  *
- * Today that is the browser's allowed cookies and what is left of the request's time budget.
- * Request header propagation will join them here, which is why this exists apart from
- * `forwardRequestCookies`: one call site, growing rules.
+ * Today that is the browser's allowed cookies, the allowed request headers, a correlation id,
+ * and what is left of the request's time budget. One call site, growing rules.
  *
  * A deadline policy on a request that was never stamped is reported once in development and
  * otherwise ignored, so a missing proxy degrades to "no budget" rather than to a crash.
@@ -29,6 +29,13 @@ export function forwardRequest(
   now: number = Date.now(),
 ): RequestInit {
   let next = forwardRequestCookies(from, init, rules.forward);
+  next = forwardRequestHeaders(
+    from,
+    next,
+    rules.forward,
+    rules.deadline?.carrier ?? DEADLINE_DEFAULTS.carrier,
+  );
+  next = forwardRequestId(from, next, rules.forward?.requestId);
 
   if (rules.deadline !== undefined) {
     const deadline = readDeadline(from, rules.deadline);

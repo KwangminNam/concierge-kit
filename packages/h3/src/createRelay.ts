@@ -11,6 +11,7 @@ import type { EventHandler, H3Event } from 'h3';
 import { applyToEvent, type ApplyOptions } from './apply.js';
 import { forwardFromEvent, stampEvent } from './forward.js';
 import { stampedRequestHeaders } from './framework.js';
+import { createRefreshMiddleware, type RefreshOptions } from './proxy.js';
 import { respondWithUpstream, type RespondOptions } from './respond.js';
 import { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 
@@ -39,6 +40,11 @@ export interface H3Relay<O extends RelayOptions = RelayOptions> extends Relay<O>
   deadline(event: H3Event): DeadlineView | undefined;
   /** Starts the budget now, for an `onRequest` hook. */
   stamp(event: H3Event): void;
+  /**
+   * Builds a middleware that refreshes a session and hands the result to the request that
+   * needed it. The only place a cookie can reach the handlers running right after.
+   */
+  refresh(options: RefreshOptions): EventHandler;
 }
 
 /**
@@ -82,5 +88,6 @@ export function createRelay<const O extends RelayOptions>(
         ? undefined
         : core.deadlineOf(stampedRequestHeaders(event, core.options.deadline)),
     stamp: (event) => stampEvent(core, event),
+    refresh: (refreshOptions) => createRefreshMiddleware(core, refreshOptions),
   };
 }

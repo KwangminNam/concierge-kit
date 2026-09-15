@@ -20,8 +20,17 @@ export function validateRelayOptions(
 
   assertKnownKeys('createRelay options', options, [...TOP_LEVEL_KEYS, ...extraTopLevelKeys]);
   if (options.cookie !== undefined) assertKnownKeys('cookie policy', options.cookie, COOKIE_KEYS);
-  if (options.forward !== undefined)
+  if (options.forward !== undefined) {
     assertKnownKeys('forward policy', options.forward, FORWARD_KEYS);
+    if (options.forward.requestId !== undefined) {
+      assertKnownKeys('forward.requestId policy', options.forward.requestId, REQUEST_ID_KEYS);
+      if (options.forward.requestId.header.trim() === '') {
+        throw new Error(
+          '[concierge-kit] forward.requestId.header must name the header your backend expects.',
+        );
+      }
+    }
+  }
   if (options.deadline !== undefined) {
     assertKnownKeys('deadline policy', options.deadline, DEADLINE_KEYS);
     if (!(Number.isFinite(options.deadline.budget) && options.deadline.budget > 0)) {
@@ -91,7 +100,8 @@ const COOKIE_KEYS = [
   'rename',
   'legacyNames',
 ] as const;
-const FORWARD_KEYS = ['cookies', 'rename', 'legacyNames'] as const;
+const FORWARD_KEYS = ['cookies', 'headers', 'requestId', 'rename', 'legacyNames'] as const;
+const REQUEST_ID_KEYS = ['header', 'generate'] as const;
 
 /**
  * A key nobody reads is a key that silently does nothing, which is the failure mode this

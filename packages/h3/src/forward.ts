@@ -1,6 +1,6 @@
 import type { Relay } from '@concierge-kit/core';
 import type { H3Event } from 'h3';
-import { stampedRequestHeaders, toRequest } from './framework.js';
+import { requestIdOf, stampedRequestHeaders, toRequest } from './framework.js';
 
 /**
  * Builds the `RequestInit` for a backend call: the browser's allowed cookies, and what is left
@@ -20,6 +20,8 @@ import { stampedRequestHeaders, toRequest } from './framework.js';
  * @see https://concierge-kit.dev/reference/h3#forward
  */
 export function forwardFromEvent(relay: Relay, event: H3Event, init?: RequestInit): RequestInit {
+  const requestId = relay.options.forward?.requestId;
+  if (requestId !== undefined) requestIdOf(event, requestId);
   const policy = relay.options.deadline;
   const source = policy === undefined ? toRequest(event) : stampedRequestHeaders(event, policy);
   return relay.forwardRequest(source, init);
