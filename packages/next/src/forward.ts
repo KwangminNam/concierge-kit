@@ -1,19 +1,29 @@
-import { DEADLINE_DEFAULTS, readDeadline, stampDeadline, type Relay } from '@concierge-kit/core';
+import {
+  DEADLINE_DEFAULTS,
+  ensureRequestId,
+  readDeadline,
+  stampDeadline,
+  type Relay,
+} from '@concierge-kit/core';
 import { readRequestHeaders } from './framework.js';
 
 /**
- * Deadlines started here rather than by a proxy, one per request.
+ * What this request started here rather than in a proxy: its clock and its correlation id.
  *
  * Keyed on the request object, or on the ambient headers object when there is no request:
  * Next hands back the same headers object for the whole request, so every call in a route
- * handler or a server action reads the same clock. A proxy stamp always wins, because it
- * started earlier.
+ * handler or a server action reads the same values. A proxy stamp always wins, because it
+ * came first.
  */
-const started = new WeakMap<object, number>();
+interface Started {
+  deadlineAt?: number;
+  requestId?: string;
+}
+const started = new WeakMap<object, Started>();
 
 /**
- * Builds the `RequestInit` for a backend call: the browser's allowed cookies, and what is left
- * of the request's time budget when a deadline is configured.
+ * Builds the `RequestInit` for a backend call: the browser's allowed cookies, the allowed
+ * request headers, a correlation id, and what is left of the request's time budget.
  *
  * Pass the request when you have one. In a server action you do not, so leave it out and the
  * adapter reads the ambient request headers instead. An explicit request always wins.
@@ -31,28 +41,36 @@ export async function forwardFromRequest(
   init?: RequestInit,
 ): Promise<RequestInit> {
   const source = request ?? (await readRequestHeaders());
-  return relay.forwardRequest(withDeadline(relay, source), init);
+  return relay.forwardRequest(withRequestScope(relay, source), init);
 }
 
 /**
- * The headers to forward from, carrying a deadline stamp when a policy exists.
+ * The headers to forward from, carrying the deadline stamp and the correlation id.
  *
- * A stamp the proxy made is kept. Without one, the clock starts at the first call of this
- * request and every later call shares it, so a route handler or a server action gets one
- * budget without needing a proxy at all.
+ * Values the proxy stamped are kept. Without them, they start at the first call of this
+ * request and every later call shares them, so a route handler or a server action works
+ * without a proxy at all.
  */
-function withDeadline(relay: Relay, source: Request | Headers): Request | Headers {
-  const policy = relay.options.deadline;
-  if (policy === undefined || readDeadline(source, policy) !== undefined) return source;
+function withRequestScope(relay: Relay, source: Request | Headers): Request | Headers {
+  const deadline = relay.options.deadline;
+  const requestId = relay.options.forward?.requestId;
+  const needsDeadline = deadline !== undefined && readDeadline(source, deadline) === undefined;
+  const needsId = requestId !== undefined;
+  if (!needsDeadline && !needsId) return source;
 
   const headers = new Headers(
     typeof (source as Request).url === 'string' ? (source as Request).headers : (source as Headers),
   );
-  const at = started.get(source);
-  if (at === undefined) {
-    started.set(source, stampDeadline(headers, policy).at);
-  } else {
-    headers.set(policy.carrier ?? DEADLINE_DEFAULTS.carrier, String(at));
+  const record = started.get(source) ?? {};
+  started.set(source, record);
+
+  if (needsDeadline && deadline !== undefined) {
+    if (record.deadlineAt === undefined) record.deadlineAt = stampDeadline(headers, deadline).at;
+    else headers.set(deadline.carrier ?? DEADLINE_DEFAULTS.carrier, String(record.deadlineAt));
+  }
+  if (requestId !== undefined) {
+    if (record.requestId === undefined) record.requestId = ensureRequestId(headers, requestId);
+    else headers.set(requestId.header, record.requestId);
   }
   return headers;
 }

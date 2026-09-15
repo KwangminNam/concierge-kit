@@ -4,6 +4,7 @@ import {
   pipeSetCookies,
   removeFromCookieHeader,
   resolveRelayContext,
+  ensureRequestId,
   stampDeadline,
   type Relay,
   type RelayResult,
@@ -112,6 +113,8 @@ function applyCookieHeader(headers: Headers, value: string): void {
 function stampedHeaders(relay: Relay, request: NextRequest): Headers {
   const headers = new Headers(request.headers);
   if (relay.options.deadline !== undefined) stampDeadline(headers, relay.options.deadline);
+  const requestId = relay.options.forward?.requestId;
+  if (requestId !== undefined) ensureRequestId(headers, requestId);
   return headers;
 }
 
@@ -129,7 +132,9 @@ function stampedHeaders(relay: Relay, request: NextRequest): Headers {
  * @see https://concierge-kit.dev/reference/deadline#next
  */
 export function stampRequest(relay: Relay, request: NextRequest): NextResponse {
-  if (relay.options.deadline === undefined) return continueRequest();
+  if (relay.options.deadline === undefined && relay.options.forward?.requestId === undefined) {
+    return continueRequest();
+  }
   return continueRequest(stampedHeaders(relay, request));
 }
 

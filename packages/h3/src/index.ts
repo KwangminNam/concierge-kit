@@ -10,6 +10,13 @@
 export { createRelay, type H3Relay } from './createRelay.js';
 export { applyToEvent, type ApplyOptions } from './apply.js';
 export { forwardFromEvent, stampEvent } from './forward.js';
+export {
+  clearSessionOnEvent,
+  createRefreshMiddleware,
+  rotateOnEvent,
+  type RefreshOptions,
+  type RotateResult,
+} from './proxy.js';
 export { respondWithUpstream, type RespondOptions } from './respond.js';
 export { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 export { toContext, toRequest } from './framework.js';
@@ -25,6 +32,8 @@ export type {
   DomainRule,
   DropReason,
   ForwardPolicy,
+  HeaderInfo,
+  HeaderMatcherInput,
   NamesOf,
   PathRule,
   Relay,
@@ -35,6 +44,7 @@ export type {
   RelayOptions,
   RelayResult,
   RenameRules,
+  RequestIdPolicy,
   SameSiteRule,
   SecureRule,
   SetCookieInfo,

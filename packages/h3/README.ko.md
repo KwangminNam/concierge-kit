@@ -69,6 +69,34 @@ export default relay.route(`${API}/login`);
 브라우저가 https 를 썼어도 소켓은 평문 http 이고, 소켓을 믿으면 프로덕션의 모든 쿠키에서
 `Secure` 가 벗겨집니다.
 
+## 미들웨어만 할 수 있는 한 가지
+
+핸들러가 쓰는 쿠키는 브라우저가 **다음** 요청에 실어 보냅니다. 요청 도중 토큰이 만료되면,
+라우트보다 먼저 도는 무언가만이 갱신하면서 그 요청이 새 값을 보게 할 수 있습니다.
+
+```ts
+// server/middleware/refresh.ts
+export default relay.refresh({
+  endpoint: `${API}/auth/refresh`,
+  when: (event) => !getCookie(event, 'access_token') && !!getCookie(event, 'refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+양쪽을 동시에 씁니다. 브라우저용 응답 `Set-Cookie` 와, 요청 객체 위의 다시 쓰인 `cookie`
+헤더입니다. 그 뒤의 모든 핸들러와 Nuxt 의 `useRequestHeaders` 가 거기서 읽습니다. 직접 흐름을
+짤 때는 `rotateOnEvent` 와 `clearSessionOnEvent` 가 양쪽 쓰기를 해 줍니다.
+
+## 요청 헤더와 상관 ID
+
+```ts
+forward: { headers: ['accept-language'], requestId: { header: 'x-request-id' } }
+```
+
+허용된 헤더는 건너가고 `host`, `content-length`, `cookie`, hop-by-hop 헤더는 절대 건너가지
+않습니다. 상관 ID 는 브라우저에서 받거나 이벤트당 한 번 만들어지며, 요청의 모든 백엔드 호출이
+같은 값을 보냅니다.
+
 ## 요청당 시간 예산 하나
 
 ```ts

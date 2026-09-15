@@ -48,6 +48,12 @@ export {
   prepareResponseHeaders,
   stripHopByHopHeaders,
 } from './headers/hopByHop.js';
+export {
+  NEVER_FORWARDED_HEADERS,
+  ensureRequestId,
+  forwardRequestHeaders,
+  forwardRequestId,
+} from './headers/forwardRequestHeaders.js';
 
 export {
   COOKIE_RULE_DEFAULTS,
@@ -64,6 +70,8 @@ export type {
   DomainRule,
   DropReason,
   ForwardPolicy,
+  HeaderInfo,
+  HeaderMatcherInput,
   NamesOf,
   PathRule,
   RelayLogger,
@@ -71,6 +79,7 @@ export type {
   RelayResult,
   RelayedNames,
   RenameRules,
+  RequestIdPolicy,
   SameSiteRule,
   SecureRule,
   SetCookieInfo,

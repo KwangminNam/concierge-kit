@@ -70,6 +70,36 @@ them from `getRequestProtocol` and `getRequestHost`, which consult `x-forwarded-
 even when the browser used https, and trusting it would strip `Secure` from every cookie in
 production.
 
+## The one thing only a middleware can do
+
+A handler writes a cookie the browser sends back on the _next_ request. When a token expires
+mid-request, only something that runs before the route can refresh it and let that same
+request see the new one:
+
+```ts
+// server/middleware/refresh.ts
+export default relay.refresh({
+  endpoint: `${API}/auth/refresh`,
+  when: (event) => !getCookie(event, 'access_token') && !!getCookie(event, 'refresh_token'),
+  onFailure: 'clear',
+});
+```
+
+It writes both sides at once: `Set-Cookie` on the response for the browser, and the rewritten
+`cookie` header on the request object, which every handler after it and Nuxt's
+`useRequestHeaders` read from. `rotateOnEvent` and `clearSessionOnEvent` do the two-sided
+write for a flow of your own.
+
+## Request headers and a correlation id
+
+```ts
+forward: { headers: ['accept-language'], requestId: { header: 'x-request-id' } }
+```
+
+Allowed headers travel; `host`, `content-length`, `cookie` and hop-by-hop headers never do. The
+correlation id is carried from the browser or minted once per event, and every backend call
+in the request sends the same one.
+
 ## One time budget per request
 
 ```ts

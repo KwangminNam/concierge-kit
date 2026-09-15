@@ -1,4 +1,10 @@
-import type { CookieRelayPolicy, DeadlinePolicy, ForwardPolicy, RelayOptions } from './types.js';
+import type {
+  CookieRelayPolicy,
+  DeadlinePolicy,
+  ForwardPolicy,
+  RelayOptions,
+  RequestIdPolicy,
+} from './types.js';
 
 /**
  * Makes a key that the shape does not declare an error at the call site.
@@ -21,7 +27,9 @@ export type StrictRelayOptions<O> = O & {
   [K in keyof O]: K extends 'cookie'
     ? StrictKeys<O[K], CookieRelayPolicy>
     : K extends 'forward'
-      ? StrictKeys<O[K], ForwardPolicy>
+      ? StrictKeys<O[K], ForwardPolicy> & {
+          [F in keyof O[K]]: F extends 'requestId' ? StrictKeys<O[K][F], RequestIdPolicy> : O[K][F];
+        }
       : K extends 'deadline'
         ? StrictKeys<O[K], DeadlinePolicy>
         : K extends keyof RelayOptions
