@@ -2,7 +2,8 @@ import type { Relay } from '@concierge-kit/core';
 import { readRequestHeaders } from './framework.js';
 
 /**
- * Builds the `RequestInit` for a backend call, carrying the browser's allowed cookies.
+ * Builds the `RequestInit` for a backend call: the browser's allowed cookies, and what is left
+ * of the request's time budget when a deadline is configured.
  *
  * Pass the request when you have one. In a server action you do not, so leave it out and the
  * adapter reads the ambient request headers instead. An explicit request always wins.
@@ -20,5 +21,5 @@ export async function forwardFromRequest(
   init?: RequestInit,
 ): Promise<RequestInit> {
   const source = request ?? (await readRequestHeaders());
-  return relay.forwardCookies(source, init);
+  return relay.forwardRequest(source, init);
 }

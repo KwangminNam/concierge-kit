@@ -4,6 +4,7 @@ import {
   pipeSetCookies,
   removeFromCookieHeader,
   resolveRelayContext,
+  stampDeadline,
   type Relay,
   type RelayResult,
 } from '@concierge-kit/core';
@@ -60,7 +61,7 @@ export function rotateFromUpstream(
     resolveRelayContext(request),
   );
 
-  const headers = new Headers(request.headers);
+  const headers = stampedHeaders(relay, request);
   applyCookieHeader(headers, mergeIntoCookieHeader(headers.get('cookie'), outgoing));
 
   const response = continueRequest(headers);
@@ -81,11 +82,12 @@ export function rotateFromUpstream(
  * @see https://concierge-kit.dev/guides/proxy#clearing
  */
 export function clearSession(
+  relay: Relay,
   request: NextRequest,
   names: readonly string[],
   options?: { path?: string },
 ): NextResponse {
-  const headers = new Headers(request.headers);
+  const headers = stampedHeaders(relay, request);
   applyCookieHeader(headers, removeFromCookieHeader(headers.get('cookie'), names));
 
   const response = continueRequest(headers);
@@ -98,6 +100,37 @@ export function clearSession(
 function applyCookieHeader(headers: Headers, value: string): void {
   if (value === '') headers.delete('cookie');
   else headers.set('cookie', value);
+}
+
+/**
+ * The incoming headers, with the request's time budget stamped on when one is configured.
+ *
+ * Every path out of the proxy goes through here, so a request that needed no refresh still
+ * gets its budget. The stamp always overwrites: a deadline arriving from outside is not one
+ * this server agreed to.
+ */
+function stampedHeaders(relay: Relay, request: NextRequest): Headers {
+  const headers = new Headers(request.headers);
+  if (relay.options.deadline !== undefined) stampDeadline(headers, relay.options.deadline);
+  return headers;
+}
+
+/**
+ * Starts this request's time budget and nothing else. For a proxy of your own that does not
+ * refresh sessions but still wants every backend call under one budget.
+ *
+ * @example
+ * ```ts
+ * export function proxy(request: NextRequest) {
+ *   return stampRequest(relay, request);
+ * }
+ * ```
+ *
+ * @see https://concierge-kit.dev/reference/deadline#next
+ */
+export function stampRequest(relay: Relay, request: NextRequest): NextResponse {
+  if (relay.options.deadline === undefined) return continueRequest();
+  return continueRequest(stampedHeaders(relay, request));
 }
 
 /** Options for {@link createProxy}. */
@@ -157,7 +190,7 @@ export function createProxy(
   options: ProxyOptions,
 ): (request: NextRequest) => Promise<NextResponse> {
   return async function proxy(request: NextRequest): Promise<NextResponse> {
-    if (!options.when(request)) return continueRequest();
+    if (!options.when(request)) return stampRequest(relay, request);
 
     const target =
       typeof options.endpoint === 'function' ? options.endpoint(request) : options.endpoint;
@@ -187,7 +220,11 @@ async function handleFailure(
   const mode = options.onFailure ?? 'continue';
   if (typeof mode === 'function') return mode(request, upstream);
   if (mode === 'clear') {
-    return clearSession(request, options.clear ?? literalCookieNames(relay.options.cookie?.allow));
+    return clearSession(
+      relay,
+      request,
+      options.clear ?? literalCookieNames(relay.options.cookie?.allow),
+    );
   }
-  return continueRequest();
+  return stampRequest(relay, request);
 }

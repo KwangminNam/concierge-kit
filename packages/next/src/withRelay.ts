@@ -55,7 +55,7 @@ export function withRelay<A extends unknown[] = []>(
 
     const helpers: RelayHandlerContext = {
       context,
-      forward: (init) => relay.forwardCookies(request, init),
+      forward: (init) => relay.forwardRequest(request, init),
       relayFrom: (upstream) => relay.relayCookies(upstream, queued, context),
       respond: (upstream, status) =>
         toNextResponse(upstream, relay, {

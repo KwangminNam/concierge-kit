@@ -1,5 +1,6 @@
 import {
   createRelay as createCoreRelay,
+  type DeadlineView,
   type Relay,
   type RelayCookieNames,
   type RelayOptions,
@@ -8,6 +9,7 @@ import {
 import type { NextRequest, NextResponse } from 'next/server';
 import { applyToCookieStore, type ApplyOptions } from './apply.js';
 import { forwardFromRequest } from './forward.js';
+import { readRequestHeaders } from './framework.js';
 import { createProxy, type ProxyOptions } from './proxy.js';
 import {
   createPassthroughRoute,
@@ -37,6 +39,11 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
   apply(upstream: Response, options?: ApplyOptions): Promise<RelayResult<RelayCookieNames<O>>>;
   /** Builds a passthrough route handler for this target. */
   route(target: RouteTarget, options?: RouteOptions): RouteHandler;
+  /**
+   * What is left of this request's time budget, for a call site that wants the signal itself.
+   * `undefined` when no deadline is configured or the request was never stamped.
+   */
+  deadline(request?: Request): Promise<DeadlineView | undefined>;
   /**
    * Builds a proxy that refreshes a session and hands the result to the request that needed it.
    * The only place a cookie can reach the render happening right now.
@@ -75,6 +82,7 @@ export function createRelay<const O extends RelayOptions>(options?: O): NextRela
     apply: (upstream, applyOptions) =>
       applyToCookieStore(upstream, core, applyOptions) as Promise<RelayResult<RelayCookieNames<O>>>,
     route: (target, routeOptions) => createPassthroughRoute(core, target, routeOptions),
+    deadline: async (request) => core.deadlineOf(request ?? (await readRequestHeaders())),
     proxy: (proxyOptions) => createProxy(core, proxyOptions),
   };
 }

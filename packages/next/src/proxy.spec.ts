@@ -100,7 +100,7 @@ describe('rotateFromUpstream', () => {
 
 describe('clearSession', () => {
   it('ends the session for the browser and for this request at once', () => {
-    const response = clearSession(incoming('access_token=a; refresh_token=r; theme=dark'), [
+    const response = clearSession(relay, incoming('access_token=a; refresh_token=r; theme=dark'), [
       'access_token',
       'refresh_token',
     ]);
@@ -176,7 +176,7 @@ describe('createProxy', () => {
 
   it('hands a failure to a function that wants to decide for itself', async () => {
     stubRefresh(new Response(null, { status: 500 }));
-    const decide = vi.fn(() => clearSession(incoming(), ['access_token']));
+    const decide = vi.fn(() => clearSession(relay, incoming(), ['access_token']));
     const proxy = createProxy(relay, { endpoint, when: () => true, onFailure: decide });
     await proxy(incoming('refresh_token=r'));
 

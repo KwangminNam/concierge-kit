@@ -231,6 +231,47 @@ and leaves the rest to you.
 This is also the answer to `onUnappliable`. If you need a cookie the current render can see, no
 call site can give you one; this is the layer that can.
 
+## One request, one time budget
+
+A backend call has a timeout. A request does not. So the third call made while rendering a page
+happily waits its full timeout even though the first two already spent most of what the user
+would tolerate. Distributed systems solve this with deadline propagation; the frontend server
+layer never had it.
+
+```ts
+export const relay = createRelay({
+  cookie: { allow: ['access_token'] },
+  forward: { cookies: ['access_token'] },
+  deadline: { budget: 3000 },
+});
+```
+
+The proxy stamps the budget where the request enters, so every call `relay.forward()` builds
+during that request gets what is left: an `AbortSignal` that fires when the budget runs out, and
+a header telling the backend how many milliseconds it has.
+
+```ts
+// a server component, deep in the tree, 2.1 seconds into the request
+const res = await fetch(`${API}/inventory`, await relay.forward());
+// → x-request-deadline: 900, and the call is aborted at 900ms if the backend is late
+```
+
+The backend header is the part that changes what happens under load: a backend told it has 900
+milliseconds can stop working on an answer nobody will read. The header name is configurable,
+because it is a contract with your backend rather than a standard.
+
+For a call site that wants the signal itself, `relay.deadline()` returns what is left. When the
+budget is gone the signal is already aborted, so a late call fails fast instead of piling on.
+
+The budget travels between the phases of a request as a header, the same way cookies do, rather
+than through an async context. In Next.js a proxy and a render are separate contexts, and a
+value set in one is not visible in the other; the end-to-end suite checks that the render reads
+what the proxy stamped. In h3 the budget lives on the event, and the clock starts on the first
+call or from an `onRequest` hook via `relay.stamp(event)`.
+
+Without a proxy, nothing is stamped: `forward()` applies no budget and says so once in
+development. A missing proxy degrades to "no deadline", never to a crash.
+
 ## The policy
 
 Every key and default is defined in `packages/core/src/policy/types.ts`, which is the source this
@@ -403,8 +444,8 @@ Maturity is reported as test counts, not as check marks.
 | h3 / Nuxt adapter                   |                                                       |     0 | Absent           |
 | React server components             |                                                       |     0 | Absent           |
 
-Totals: 111 unit and type tests in the core, 47 integration tests in the Next adapter, 14 in the
-h3 adapter, 6 for the documented runtime recipes, and 17 browser tests end to end.
+Totals: 135 unit and type tests in the core, 57 integration tests in the Next adapter, 19 in the
+h3 adapter, 6 for the documented runtime recipes, and 19 browser tests end to end.
 
 The end to end suite runs against `dev.example.test`, not `localhost`. Browsers treat `localhost`
 as a secure context, so they store a `Secure` cookie over plain http and never show a `Domain`
@@ -414,7 +455,7 @@ cases running a deliberately naive relay, and they assert the browser throws the
 ## Not in this release
 
 Request header propagation and correlation ids, response header filtering beyond hop-by-hop,
-internal versus public base URLs, redirect path normalisation, timeouts and retries, error
+internal versus public base URLs, redirect path normalisation, retries, error
 normalisation and structured logging. Each has a place in the existing
 structure; see `docs/design-memo.md` for where each one lands.
 

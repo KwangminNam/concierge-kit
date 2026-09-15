@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 /**
  * Test double for the framework seam.
  *
@@ -18,6 +19,8 @@ export const state: FrameworkState = {
 };
 
 export const frameworkMock = {
+  continueRequest: (headers?: Headers): NextResponse =>
+    headers === undefined ? NextResponse.next() : NextResponse.next({ request: { headers } }),
   readRequestHeaders: async (): Promise<Headers> => state.requestHeaders,
   readCookieStore: async (): Promise<{ set: (init: unknown) => void }> => ({
     set: (init: unknown) => state.setCookie(init),

@@ -109,6 +109,20 @@ export const proxy = relay.proxy({
 Next 15 는 `middleware.ts` 를 기본적으로 Edge 에서, Next 16 은 `proxy.ts` 를 Node 에서
 실행합니다. 코어는 어느 쪽이든 Edge 안전합니다.
 
+## 요청당 시간 예산 하나
+
+```ts
+export const relay = createRelay({ /* ... */ deadline: { budget: 3000 } });
+```
+
+`relay.proxy()` 가 요청이 들어오는 지점에서 예산을 찍습니다. 그 요청의 모든 `relay.forward()`
+는 남은 것을 실어 갑니다. `AbortSignal` 과 백엔드용 `x-request-deadline` 헤더입니다.
+`relay.deadline()` 은 남은 예산과 신호를 직접 쓰려는 호출 지점에 돌려줍니다. 직접 만든
+프록시에서는 `stampRequest(relay, request)` 가 스탬프만 합니다.
+
+예산은 프록시에서 렌더로 비동기 컨텍스트가 아니라 헤더로 건너갑니다. Next.js 에서 둘은 별개의
+컨텍스트라 한쪽에서 설정한 값이 다른 쪽에 보이지 않습니다.
+
 ## Next 를 건드리는 파일은 하나뿐
 
 이 패키지가 쓰는 모든 Next.js API 는 `src/framework.ts` 에 있습니다. Next 의 변경이 그 파일

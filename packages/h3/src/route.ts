@@ -60,7 +60,7 @@ export function createPassthroughRoute(
       if (value !== null) headers.set(name, value);
     }
 
-    const init = relay.forwardCookies(request, {
+    const init = relay.forwardRequest(request, {
       redirect: 'manual',
       ...options?.init,
       method: request.method,

@@ -1,9 +1,10 @@
 import type { Relay } from '@concierge-kit/core';
 import type { H3Event } from 'h3';
-import { toRequest } from './framework.js';
+import { stampedRequestHeaders, toRequest } from './framework.js';
 
 /**
- * Builds the `RequestInit` for a backend call, carrying the browser's allowed cookies.
+ * Builds the `RequestInit` for a backend call: the browser's allowed cookies, and what is left
+ * of the request's time budget when a deadline is configured.
  *
  * Synchronous, unlike the Next.js adapter: h3 hands you the request directly, so nothing has to
  * be awaited to find out who is calling.
@@ -19,5 +20,25 @@ import { toRequest } from './framework.js';
  * @see https://concierge-kit.dev/reference/h3#forward
  */
 export function forwardFromEvent(relay: Relay, event: H3Event, init?: RequestInit): RequestInit {
-  return relay.forwardCookies(toRequest(event), init);
+  const policy = relay.options.deadline;
+  const source = policy === undefined ? toRequest(event) : stampedRequestHeaders(event, policy);
+  return relay.forwardRequest(source, init);
+}
+
+/**
+ * Starts this request's time budget now, for a nitro `onRequest` hook that wants the clock to
+ * run from the moment the request arrived rather than from the first backend call.
+ *
+ * @example
+ * ```ts
+ * // server/plugins/deadline.ts
+ * export default defineNitroPlugin((nitro) => {
+ *   nitro.hooks.hook('request', (event) => stampEvent(relay, event));
+ * });
+ * ```
+ *
+ * @see https://concierge-kit.dev/reference/deadline#h3
+ */
+export function stampEvent(relay: Relay, event: H3Event): void {
+  if (relay.options.deadline !== undefined) stampedRequestHeaders(event, relay.options.deadline);
 }

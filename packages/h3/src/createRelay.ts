@@ -1,5 +1,6 @@
 import {
   createRelay as createCoreRelay,
+  type DeadlineView,
   type Relay,
   type RelayCookieNames,
   type RelayOptions,
@@ -7,7 +8,8 @@ import {
 } from '@concierge-kit/core';
 import type { EventHandler, H3Event } from 'h3';
 import { applyToEvent, type ApplyOptions } from './apply.js';
-import { forwardFromEvent } from './forward.js';
+import { forwardFromEvent, stampEvent } from './forward.js';
+import { stampedRequestHeaders } from './framework.js';
 import { respondWithUpstream, type RespondOptions } from './respond.js';
 import { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 
@@ -32,6 +34,10 @@ export interface H3Relay<O extends RelayOptions = RelayOptions> extends Relay<O>
   respond(event: H3Event, upstream: Response, options?: RespondOptions): Promise<void>;
   /** Builds a passthrough event handler for this target. */
   route(target: RouteTarget, options?: RouteOptions): EventHandler;
+  /** What is left of this request's time budget, or `undefined` when no deadline is configured. */
+  deadline(event: H3Event): DeadlineView | undefined;
+  /** Starts the budget now, for an `onRequest` hook. */
+  stamp(event: H3Event): void;
 }
 
 /**
@@ -68,5 +74,10 @@ export function createRelay<const O extends RelayOptions>(options?: O): H3Relay<
     respond: (event, upstream, respondOptions) =>
       respondWithUpstream(core, event, upstream, respondOptions),
     route: (target, routeOptions) => createPassthroughRoute(core, target, routeOptions),
+    deadline: (event) =>
+      core.options.deadline === undefined
+        ? undefined
+        : core.deadlineOf(stampedRequestHeaders(event, core.options.deadline)),
+    stamp: (event) => stampEvent(core, event),
   };
 }

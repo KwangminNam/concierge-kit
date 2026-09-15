@@ -9,7 +9,7 @@
 
 export { createRelay, type H3Relay } from './createRelay.js';
 export { applyToEvent, type ApplyOptions } from './apply.js';
-export { forwardFromEvent } from './forward.js';
+export { forwardFromEvent, stampEvent } from './forward.js';
 export { respondWithUpstream, type RespondOptions } from './respond.js';
 export { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 export { toContext, toRequest } from './framework.js';
@@ -19,6 +19,8 @@ export type {
   CookieMatcher,
   CookieMatcherInput,
   CookieRelayPolicy,
+  DeadlinePolicy,
+  DeadlineView,
   DropReason,
   ForwardPolicy,
   RelayContext,

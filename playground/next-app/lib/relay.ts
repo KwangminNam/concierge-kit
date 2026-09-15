@@ -15,6 +15,7 @@ export const relay = createRelay({
     sameSite: 'auto',
   },
   forward: { cookies: ['access_token', 'refresh_token'] },
+  deadline: { budget: 1500 },
   onUnappliable: 'warn',
 });
 
