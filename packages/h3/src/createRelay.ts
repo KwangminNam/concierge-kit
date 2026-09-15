@@ -5,6 +5,7 @@ import {
   type RelayCookieNames,
   type RelayOptions,
   type RelayResult,
+  type StrictRelayOptions,
 } from '@concierge-kit/core';
 import type { EventHandler, H3Event } from 'h3';
 import { applyToEvent, type ApplyOptions } from './apply.js';
@@ -63,7 +64,9 @@ export interface H3Relay<O extends RelayOptions = RelayOptions> extends Relay<O>
  *
  * @see https://concierge-kit.dev/reference/h3#createrelay
  */
-export function createRelay<const O extends RelayOptions>(options?: O): H3Relay<O> {
+export function createRelay<const O extends RelayOptions>(
+  options?: StrictRelayOptions<O>,
+): H3Relay<O> {
   const core = createCoreRelay(options);
 
   return {

@@ -10,6 +10,7 @@
 
 export { createRelay, type Relay, type RelayCookieNames } from './createRelay.js';
 export { forwardRequest, type ForwardRules } from './forwardRequest.js';
+export { defineRelayOptions, type StrictKeys, type StrictRelayOptions } from './policy/strict.js';
 export {
   DEADLINE_DEFAULTS,
   deadlineSignal,

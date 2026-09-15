@@ -8,7 +8,7 @@ function upstream(...cookies: string[]): Response {
   return new Response(null, { headers });
 }
 
-const localhost: RelayContext = { proto: 'http', host: 'localhost:3000' };
+const localhost: RelayContext = { proto: 'http', host: 'dev.example.test:3000' };
 
 describe('relaySetCookies', () => {
   it('relays only what the policy allows and says why the rest was dropped', () => {
@@ -49,7 +49,7 @@ describe('relaySetCookies', () => {
       { allow: true, domain: 'auto', secure: 'auto', sameSite: 'auto' },
       localhost,
     );
-    expect(to.getSetCookie()).toEqual(['access_token=a; SameSite=Lax; Partitioned']);
+    expect(to.getSetCookie()).toEqual(['access_token=a; SameSite=Lax']);
   });
 
   it('reports the renamed name as the relayed one', () => {

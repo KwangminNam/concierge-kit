@@ -5,6 +5,7 @@ import {
   type RelayCookieNames,
   type RelayOptions,
   type RelayResult,
+  type StrictRelayOptions,
 } from '@concierge-kit/core';
 import type { NextRequest, NextResponse } from 'next/server';
 import { applyToCookieStore, type ApplyOptions } from './apply.js';
@@ -34,7 +35,7 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
    */
   forward(request?: Request, init?: RequestInit): Promise<RequestInit>;
   /** Returns a backend response to the browser with its allowed cookies. */
-  respond(upstream: Response, options?: RespondOptions): Promise<Response>;
+  respond(upstream: Response, options?: RespondOptions<RelayCookieNames<O>>): Promise<Response>;
   /** Writes the allowed cookies through Next's cookie store, for server actions. */
   apply(upstream: Response, options?: ApplyOptions): Promise<RelayResult<RelayCookieNames<O>>>;
   /** Builds a passthrough route handler for this target. */
@@ -72,7 +73,9 @@ export interface NextRelay<O extends RelayOptions = RelayOptions> extends Relay<
  *
  * @see https://concierge-kit.dev/reference/next#createrelay
  */
-export function createRelay<const O extends RelayOptions>(options?: O): NextRelay<O> {
+export function createRelay<const O extends RelayOptions>(
+  options?: StrictRelayOptions<O>,
+): NextRelay<O> {
   const core = createCoreRelay(options);
 
   return {

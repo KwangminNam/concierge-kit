@@ -4,6 +4,7 @@ import { readDeadline, viewDeadline, type DeadlineView } from './deadline/deadli
 import { forwardRequest } from './forwardRequest.js';
 import { relaySetCookies } from './cookie/relaySetCookies.js';
 import { prepareResponseHeaders } from './headers/hopByHop.js';
+import type { StrictRelayOptions } from './policy/strict.js';
 import { validateRelayOptions } from './policy/validate.js';
 import type { RelayOptions, RelayResult, RelayedNames } from './policy/types.js';
 
@@ -71,7 +72,9 @@ export interface Relay<O extends RelayOptions = RelayOptions> {
  *
  * @see https://concierge-kit.dev/reference/create-relay
  */
-export function createRelay<const O extends RelayOptions>(options?: O): Relay<O> {
+export function createRelay<const O extends RelayOptions>(
+  options?: StrictRelayOptions<O>,
+): Relay<O> {
   const resolved = (options ?? {}) as O;
   validateRelayOptions(resolved);
 

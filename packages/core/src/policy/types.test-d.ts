@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { createRelay } from '../createRelay.js';
+import { defineRelayOptions } from './strict.js';
 import { relaySetCookies } from '../cookie/relaySetCookies.js';
 import type { SetCookieInfo } from './types.js';
 
@@ -61,5 +62,38 @@ describe('policy keys are closed', () => {
       // @ts-expect-error a number is not a cookie matcher
       cookie: { allow: 42 },
     });
+  });
+});
+
+describe('unknown keys are a compile error, not only a runtime one', () => {
+  it('rejects a misspelled top level key', () => {
+    // @ts-expect-error 'cookies' is not an option; the key is 'cookie'
+    createRelay({ cookies: { allow: true } });
+  });
+
+  it('rejects a misspelled key inside a policy', () => {
+    // @ts-expect-error there is no 'sameSitePolicy'
+    createRelay({ cookie: { allow: true, sameSitePolicy: 'lax' } });
+    // @ts-expect-error there is no 'timeout' on deadline
+    createRelay({ deadline: { budget: 100, timeout: 5 } });
+  });
+
+  it('accepts a real logger, whatever else it carries', () => {
+    createRelay({ cookie: { allow: true }, logger: { warn() {}, info() {}, child() {} } });
+  });
+});
+
+describe('defineRelayOptions', () => {
+  it('keeps literals, so a relay built later still narrows', () => {
+    const options = defineRelayOptions({ cookie: { allow: ['access_token', 'refresh_token'] } });
+    const relay = createRelay(options);
+    expectTypeOf(relay.relayCookies(new Headers(), new Headers()).relayed).toEqualTypeOf<
+      Array<'access_token' | 'refresh_token'>
+    >();
+  });
+
+  it('rejects unknown keys the same way', () => {
+    // @ts-expect-error 'allowed' is not a cookie policy key
+    defineRelayOptions({ cookie: { allowed: true } });
   });
 });

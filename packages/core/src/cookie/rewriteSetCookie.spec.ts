@@ -12,7 +12,7 @@ function rewrite(raw: string, policy?: Partial<CookieRelayPolicy>, ctx?: RelayCo
 }
 
 const https: RelayContext = { proto: 'https', host: 'app.example.com' };
-const localhost: RelayContext = { proto: 'http', host: 'localhost:3000' };
+const localhost: RelayContext = { proto: 'http', host: 'dev.example.test:3000' };
 
 describe('attribute preservation', () => {
   it('leaves attributes it does not know about byte for byte', () => {
@@ -117,5 +117,42 @@ describe('path and rename', () => {
     expect(rewrite('sid=abc; Path=/', { rename: { toBrowser: (n) => `web_${n}` } })).toBe(
       'web_sid=abc; Path=/',
     );
+  });
+});
+
+describe('secure context', () => {
+  const loopback: RelayContext = { proto: 'http', host: 'localhost:3000' };
+
+  it('keeps Secure on localhost, where the browser stores it over http anyway', () => {
+    const raw = 'sid=a; Secure; SameSite=None; Partitioned';
+    expect(rewrite(raw, { secure: 'auto', sameSite: 'auto' }, loopback)).toBe(raw);
+  });
+
+  it.each(['127.0.0.1:3000', 'app.localhost', '[::1]:3000'])('treats %s as loopback', (host) => {
+    expect(rewrite('sid=a; Secure', { secure: 'auto' }, { proto: 'http', host })).toBe(
+      'sid=a; Secure',
+    );
+  });
+
+  it('strips Partitioned along with Secure, since one cannot exist without the other', () => {
+    expect(
+      rewrite(
+        'sid=a; Secure; SameSite=None; Partitioned; HttpOnly',
+        { secure: 'auto', sameSite: 'auto' },
+        {
+          proto: 'http',
+          host: 'dev.example.test',
+        },
+      ),
+    ).toBe('sid=a; SameSite=Lax; HttpOnly');
+  });
+
+  it('leaves a __Host- cookie alone rather than make it invalid', () => {
+    const raw = '__Host-sid=a; Path=/; Secure';
+    expect(rewrite(raw, { secure: 'auto' }, { proto: 'http', host: 'dev.example.test' })).toBe(raw);
+  });
+
+  it('still strips an explicit request, prefix or not', () => {
+    expect(rewrite('__Secure-x=1; Secure', { secure: 'strip' })).toBe('__Secure-x=1');
   });
 });

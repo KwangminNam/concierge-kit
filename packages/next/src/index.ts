@@ -29,6 +29,7 @@ export {
 export { withRelay, type RelayHandler, type RelayHandlerContext } from './withRelay.js';
 export type { CookieStoreInit, WritableCookieStore } from './framework.js';
 
+export { defineRelayOptions } from '@concierge-kit/core';
 export type {
   CookieInfo,
   CookieMatcher,
@@ -36,11 +37,22 @@ export type {
   CookieRelayPolicy,
   DeadlinePolicy,
   DeadlineView,
+  DomainRule,
   DropReason,
   ForwardPolicy,
+  NamesOf,
+  PathRule,
+  Relay,
   RelayContext,
+  RelayCookieNames,
+  RelayedNames,
+  RelayLogger,
   RelayOptions,
   RelayResult,
+  RenameRules,
+  SameSiteRule,
+  SecureRule,
   SetCookieInfo,
+  StrictRelayOptions,
   UnappliableMode,
 } from '@concierge-kit/core';

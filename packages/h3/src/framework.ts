@@ -37,7 +37,10 @@ export function toRequest(event: H3Event): Request {
  * package needs: behind a proxy the socket is plain http even when the browser used https.
  */
 export function toContext(event: H3Event): RelayContext {
-  return { proto: getRequestProtocol(event), host: getRequestHost(event) };
+  return {
+    proto: getRequestProtocol(event, { xForwardedProto: true }),
+    host: getRequestHost(event, { xForwardedHost: true }),
+  };
 }
 
 /**

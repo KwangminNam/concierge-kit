@@ -1,4 +1,5 @@
-import { domainMatches, type RelayContext } from '../context.js';
+import { domainMatches, isLoopbackHost, type RelayContext } from '../context.js';
+import { devWarnOnce } from '../internal/dev.js';
 import type { ResolvedCookieRules } from '../policy/defaults.js';
 import type { SetCookieInfo } from '../policy/types.js';
 import { findAttribute, type ScannedSetCookie } from './scanSetCookie.js';
@@ -43,6 +44,8 @@ export function rewriteSetCookie(
 
   applyDomain(scanned, resolveDomain(rules.domain, info, ctx), edits, appends);
   applyFlag(scanned, 'secure', secure, 'Secure', edits, appends);
+  // Partitioned requires Secure. Leaving it behind would make the browser reject the cookie.
+  if (secure === 'strip') applyFlag(scanned, 'partitioned', 'strip', 'Partitioned', edits, appends);
   applyValue(
     scanned,
     'samesite',
@@ -96,13 +99,30 @@ function resolveSecure(
       return info.secure ? 'strip' : 'keep';
     case 'force':
       return info.secure ? 'keep' : 'add';
-    case 'auto':
-      if (ctx === undefined || ctx.proto === 'https') return 'keep';
-      return info.secure ? 'strip' : 'keep';
+    case 'auto': {
+      if (ctx === undefined || ctx.proto === 'https' || !info.secure) return 'keep';
+      // Browsers grant loopback hosts a secure context, so the cookie is stored as it is.
+      if (isLoopbackHost(ctx.host)) return 'keep';
+      if (hasSecurePrefix(info.name)) {
+        devWarnOnce(
+          undefined,
+          `secure-prefix:${info.name}`,
+          `cookie "${info.name}" carries a __Host- or __Secure- prefix, which requires Secure. ` +
+            'It cannot be stored over plain http on a host that is not localhost, so it was left ' +
+            'untouched rather than made invalid.',
+        );
+        return 'keep';
+      }
+      return 'strip';
+    }
     case 'keep':
     default:
       return 'keep';
   }
+}
+
+function hasSecurePrefix(name: string): boolean {
+  return name.startsWith('__Host-') || name.startsWith('__Secure-');
 }
 
 function resolveSameSite(

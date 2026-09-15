@@ -14,6 +14,7 @@ export { respondWithUpstream, type RespondOptions } from './respond.js';
 export { createPassthroughRoute, type RouteOptions, type RouteTarget } from './route.js';
 export { toContext, toRequest } from './framework.js';
 
+export { defineRelayOptions } from '@concierge-kit/core';
 export type {
   CookieInfo,
   CookieMatcher,
@@ -21,10 +22,22 @@ export type {
   CookieRelayPolicy,
   DeadlinePolicy,
   DeadlineView,
+  DomainRule,
   DropReason,
   ForwardPolicy,
+  NamesOf,
+  PathRule,
+  Relay,
   RelayContext,
+  RelayCookieNames,
+  RelayedNames,
+  RelayLogger,
   RelayOptions,
   RelayResult,
+  RenameRules,
+  SameSiteRule,
+  SecureRule,
   SetCookieInfo,
+  StrictRelayOptions,
+  UnappliableMode,
 } from '@concierge-kit/core';

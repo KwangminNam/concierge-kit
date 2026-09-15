@@ -301,6 +301,16 @@ The three `'auto'` rules only ever remove an attribute that would have made the 
 the cookie: a `Domain` the current host cannot match, `Secure` on a plain http request, and
 `SameSite=None` left without `Secure`. Nothing else is touched.
 
+Two refinements keep that promise honest. Browsers treat `localhost`, `*.localhost`, `127.*`
+and `[::1]` as a secure context, so `Secure` is kept there rather than stripped for nothing.
+And when `Secure` does go, `Partitioned` goes with it, because a `Partitioned` cookie without
+`Secure` is rejected; a `__Host-` or `__Secure-` cookie is left untouched and reported in
+development, since stripping would only make it invalid.
+
+Unknown keys are a compile error, one level into each policy, even though the options are
+generic. Declare options in a file of their own with `defineRelayOptions` and they keep their
+literal types: `allow: ['a', 'b']` still narrows `relayed` to `('a' | 'b')[]` later.
+
 Outside production the policy is checked when you declare it. A combination that could never
 produce a storable cookie throws, a misspelled key throws, and a setting that silently does
 nothing warns. Production pays nothing for any of it.

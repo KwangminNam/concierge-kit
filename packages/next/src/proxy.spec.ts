@@ -79,7 +79,7 @@ describe('rotateFromUpstream', () => {
   it('rewrites attributes on the way out, judged against the incoming request', () => {
     const response = rotateFromUpstream(
       relay,
-      incoming('access_token=stale', 'http://localhost:3000/dashboard'),
+      incoming('access_token=stale', 'http://dev.example.test:3000/dashboard'),
       refreshed('access_token=fresh; Domain=.example.com; Secure; SameSite=None'),
     );
     expect(response.headers.getSetCookie()).toEqual(['access_token=fresh; SameSite=Lax']);

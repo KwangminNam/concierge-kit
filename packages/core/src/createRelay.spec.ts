@@ -15,7 +15,10 @@ describe('createRelay', () => {
       ]),
     });
     const to = new Headers();
-    const result = relay.relayCookies(upstream, to, { proto: 'http', host: 'localhost:3000' });
+    const result = relay.relayCookies(upstream, to, {
+      proto: 'http',
+      host: 'dev.example.test:3000',
+    });
 
     expect(result.relayed).toEqual(['access_token']);
     expect(result.dropped).toEqual([{ name: 'internal', reason: 'not-allowed' }]);

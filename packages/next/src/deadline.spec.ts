@@ -127,13 +127,40 @@ describe('the render spends the budget', () => {
     expect(new Headers(init.headers).get(DEADLINE_DEFAULTS.header)).toBe('0');
     expect(init.signal?.aborted).toBe(true);
   });
+});
 
-  it('applies no budget, and says so once, when the proxy never ran', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+describe('without a proxy, the first call starts the clock', () => {
+  it('shares one budget across calls in a route handler', async () => {
+    const request = incoming('access_token=a');
+    const first = await forwardFromRequest(relay, request);
+    vi.advanceTimersByTime(1200);
+    const second = await forwardFromRequest(relay, request);
+
+    expect(new Headers(first.headers).get(DEADLINE_DEFAULTS.header)).toBe('3000');
+    expect(new Headers(second.headers).get(DEADLINE_DEFAULTS.header)).toBe('1800');
+  });
+
+  it('shares one budget across calls in a server action', async () => {
     state.requestHeaders = new Headers({ cookie: 'access_token=a' });
-    const init = await forwardFromRequest(relay);
+    const first = await forwardFromRequest(relay);
+    vi.advanceTimersByTime(500);
+    const second = await forwardFromRequest(relay);
 
-    expect(init.signal).toBeUndefined();
-    expect(warn.mock.calls.some((c) => String(c[0]).includes('never stamped'))).toBe(true);
+    expect(new Headers(first.headers).get(DEADLINE_DEFAULTS.header)).toBe('3000');
+    expect(new Headers(second.headers).get(DEADLINE_DEFAULTS.header)).toBe('2500');
+  });
+
+  it('defers to a stamp the proxy already made', async () => {
+    const request = new NextRequest('https://app.example.com/', {
+      headers: { [DEADLINE_DEFAULTS.carrier]: String(1_700_000_000_000 + 1000) },
+    });
+    const init = await forwardFromRequest(relay, request);
+    expect(new Headers(init.headers).get(DEADLINE_DEFAULTS.header)).toBe('1000');
+  });
+
+  it('no longer warns about a missing proxy', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await forwardFromRequest(relay, incoming());
+    expect(warn).not.toHaveBeenCalled();
   });
 });
